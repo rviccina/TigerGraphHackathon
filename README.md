@@ -22,6 +22,13 @@ origin	https://github.com/yourUsername/TigerGraphHackathon.git (push)
 upstream	https://github.com/rviccina/TigerGraphHackathon.git (fetch)
 upstream	https://github.com/rviccina/TigerGraphHackathon.git (push)
 ```
+
+### To stay up to date with latest changes from the `master` branch:
+```
+$ git fetch upstream
+$ git rebase upstream/master
+```
+
 ---
 ## Flow for submitting a Pull Request
 1. Create a feature branch off of the master branch
