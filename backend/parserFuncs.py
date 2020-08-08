@@ -54,14 +54,21 @@ def frc_matchData(eventKey,TBA_auth_key,qualBool=True):
         redAlli = pd.DataFrame([alliTeams['red.team_keys'][0]],columns=['red1','red2','red3'])
         
         if j == 0:
-            df = pd.DataFrame.from_dict(json_normalize(scoreBreakdown[j]), orient='columns')
-            df = pd.concat([blueAlli,redAlli,df],axis=1)
+            df = pd.DataFrame.from_dict(json_normalize(scoreBreakdown[j]),\
+                                        orient='columns')
+            df = pd.concat([blueAlli,redAlli,df],\
+                           axis=1,\
+                           sort=False)
             
             df.at[df.index[-1],'matchKey'] = matchKeys[j]
         else:
-            temp = pd.DataFrame.from_dict(json_normalize(scoreBreakdown[j]), orient='columns')
-            temp = pd.concat([blueAlli,redAlli,temp],axis=1)
-            df = df.append(temp)
+            temp = pd.DataFrame.from_dict(json_normalize(scoreBreakdown[j]),\
+                                          orient='columns')
+            temp = pd.concat([blueAlli,redAlli,temp],\
+                             axis=1,\
+                             sort=False)
+            df = df.append(temp,\
+                           sort=False)
 
             df.at[df.index[-1],'matchKey'] = matchKeys[j]
 
