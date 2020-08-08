@@ -1,0 +1,32 @@
+# Blue Alliance Model
+
+// clear the current catalog. 
+// It may take a while since it restarts the subsystem services. 
+DROP ALL
+
+// create vertex types
+
+# Event Matches
+CREATE VERTEX EventMatches (PRIMARY_ID eventKey STRING, matchKey STRING,
+    red1 STRING, red2 STRING, red3 STRING, blue1 STRING, blue2 STRING, blue3 STRING, redScore INT, blueScore INT) WITH primary_id_as_attribute="TRUE"
+
+# Event Awards 
+// awardType - enum
+// team - can be null
+// awardee - can be null
+CREATE VERTEX EventAwards (PRIMARY_ID awardId UINT, eventKey STRING, awardType STRING,
+    awardName STRING, team STRING, awardee STRING) WITH primary_id_as_attribute="TRUE"
+
+# Event Teams
+CREATE VERTEX eventTeams (PRIMARY_ID teamId UINT, teamName STRING) WITH primary_id_as_attribute="TRUE"
+
+# Event Alliances
+CREATE VERTEX eventAlliances (PRIMARY_ID allianceId UINT, captain STRING, pick1 STRING, pick2 STRING) WITH primary_id_as_attribute="TRUE"
+
+# Event Rankings
+CREATE VERTEX eventRankings (PRIMARY_ID rankingId UINT, rank INT, team INT, qs DOUBLE, assist DOUBLE, autoStat DOUBLE, t&c DOUBLE, teleop DOUBLE, record STRING, dq INT, played INT) WITH primary_id_as_attribute="TRUE"
+
+// create edge types
+
+// create graph type
+CREATE GRAPH blue_alliance_model (*)
