@@ -9,21 +9,52 @@ DROP ALL
 CREATE VERTEX EventTeams (PRIMARY_ID team STRING) WITH primary_id_as_attribute="TRUE"
 
 # Event Matches
-CREATE VERTEX EventMatches (PRIMARY_ID eventKey STRING, matchKey STRING,
-    red1 STRING, red2 STRING, red3 STRING, blue1 STRING, blue2 STRING, blue3 STRING, redScore INT, blueScore INT) WITH primary_id_as_attribute="TRUE"
+CREATE VERTEX EventMatches (
+    PRIMARY_ID eventKey STRING, 
+    matchKey STRING,
+    red1 STRING, 
+    red2 STRING, 
+    red3 STRING, 
+    blue1 STRING, 
+    blue2 STRING, 
+    blue3 STRING, 
+    redScore INT, 
+    blueScore INT) 
+    WITH primary_id_as_attribute="TRUE"
 
 # Event Alliances
-CREATE VERTEX EventAlliances (PRIMARY_ID allianceId UINT, captain STRING, pick1 STRING, pick2 STRING) WITH primary_id_as_attribute="TRUE"
+CREATE VERTEX EventAlliances (
+    PRIMARY_ID allianceId UINT, 
+    captain STRING, 
+    pick1 STRING, 
+    pick2 STRING) 
+    WITH primary_id_as_attribute="TRUE"
 
 # Event Rankings
-CREATE VERTEX EventRankings (PRIMARY_ID rankingId UINT, rank INT, team INT, qs DOUBLE, assist DOUBLE, autoStat DOUBLE, t&c DOUBLE, teleop DOUBLE, record STRING, dq INT, played INT) WITH primary_id_as_attribute="TRUE"
+CREATE VERTEX EventRankings (
+    PRIMARY_ID rankingId UINT, 
+    rank INT, 
+    team INT, 
+    qs DOUBLE, 
+    assist DOUBLE, 
+    autoStat DOUBLE, 
+    t&c DOUBLE, 
+    teleop DOUBLE, 
+    record STRING, 
+    dq INT, 
+    played INT) 
+    WITH primary_id_as_attribute="TRUE"
 
 # Event Awards 
 // awardType - enum
 // team - can be null
 // awardee - can be null
-CREATE VERTEX EventAwards (PRIMARY_ID eventKey STRING, awardType STRING,
-    awardName STRING, team STRING, awardee STRING) WITH primary_id_as_attribute="TRUE"
+CREATE VERTEX EventAwards (
+    PRIMARY_ID eventKey STRING, 
+    awardType STRING,
+    awardName STRING, 
+    team STRING, 
+    awardee STRING) WITH primary_id_as_attribute="TRUE"
 
 // create edge types
 CREATE DIRECTED EDGE PARTICIPATES_IN (FROM EventTeams, TO EventMatches) WITH REVERSE_EDGE="PARTICIPATES_IN_REVERSE"
