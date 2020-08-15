@@ -2,7 +2,7 @@
 This file combines the schema script and loading job script.
 
 <p align="center">
-    <img height=200 width=400 src="images/blue-alliance-model.jpg">
+    <img src="images/blue-alliance-model.jpg">
 </p>
 
 ## Vertex Types
