@@ -5,28 +5,50 @@
 DROP ALL
 
 // create vertex types
+# Event Teams
+CREATE VERTEX EventTeams (PRIMARY_ID team STRING) WITH primary_id_as_attribute="TRUE"
 
 # Event Matches
 CREATE VERTEX EventMatches (PRIMARY_ID eventKey STRING, matchKey STRING,
     red1 STRING, red2 STRING, red3 STRING, blue1 STRING, blue2 STRING, blue3 STRING, redScore INT, blueScore INT) WITH primary_id_as_attribute="TRUE"
 
+# Event Alliances
+CREATE VERTEX EventAlliances (PRIMARY_ID allianceId UINT, captain STRING, pick1 STRING, pick2 STRING) WITH primary_id_as_attribute="TRUE"
+
+# Event Rankings
+CREATE VERTEX EventRankings (PRIMARY_ID rankingId UINT, rank INT, team INT, qs DOUBLE, assist DOUBLE, autoStat DOUBLE, t&c DOUBLE, teleop DOUBLE, record STRING, dq INT, played INT) WITH primary_id_as_attribute="TRUE"
+
 # Event Awards 
 // awardType - enum
 // team - can be null
 // awardee - can be null
-CREATE VERTEX EventAwards (PRIMARY_ID awardId UINT, eventKey STRING, awardType STRING,
+CREATE VERTEX EventAwards (PRIMARY_ID eventKey STRING, awardType STRING,
     awardName STRING, team STRING, awardee STRING) WITH primary_id_as_attribute="TRUE"
 
-# Event Teams
-CREATE VERTEX eventTeams (PRIMARY_ID teamId UINT, teamName STRING) WITH primary_id_as_attribute="TRUE"
-
-# Event Alliances
-CREATE VERTEX eventAlliances (PRIMARY_ID allianceId UINT, captain STRING, pick1 STRING, pick2 STRING) WITH primary_id_as_attribute="TRUE"
-
-# Event Rankings
-CREATE VERTEX eventRankings (PRIMARY_ID rankingId UINT, rank INT, team INT, qs DOUBLE, assist DOUBLE, autoStat DOUBLE, t&c DOUBLE, teleop DOUBLE, record STRING, dq INT, played INT) WITH primary_id_as_attribute="TRUE"
-
 // create edge types
+CREATE DIRECTED EDGE PARTICIPATES_IN (FROM EventTeams, TO EventMatches) WITH REVERSE_EDGE="PARTICIPATES_IN_REVERSE"
+CREATE DIRECTED EDGE HAS_ALLIANCE (FROM EventTeams, TO EventAlliances) WITH REVERSE_EDGE="HAS_ALLIANCE_REVERSE"
+CREATE DIRECTED EDGE HAS_RANK (FROM EventTeams, TO EventRankings) WITH REVERSE_EDGE="HAS_RANK_REVERSE"
+CREATE DIRECTED EDGE RECIPIENT_OF (FROM EventTeams, TO EventAwards) WITH REVERSE_EDGE="RECIPIENT_OF_REVERSE"
 
 // create graph type
 CREATE GRAPH blue_alliance_model (*)
+
+# GSQL script for loading Blue Alliance Model data
+
+// USE GRAPH blue_alliance_model
+// CREATE LOADING JOB load_blue_alliance_model FOR GRAPH blue_alliance_model {
+//   // define vertex
+//   DEFINE FILENAME v_comment_file;
+
+//   // define edge
+//   DEFINE FILENAME forum_containerOf_post_file;
+
+//   // load vertex
+//   LOAD v_comment_file
+//     TO VERTEX Comment VALUES ($0, $1, $2, $3, $4, $5) USING header="true", separator="|";
+  
+//   // load edge
+//   LOAD forum_containerOf_post_file
+//     TO EDGE CONTAINER_OF VALUES ($0, $1) USING header="true", separator="|";
+// }

@@ -1,14 +1,28 @@
 # Introduction
 This file combines the schema script and loading job script.
 
+<p align="center">
+    <img height=200 width=400 src="images/blue-alliance-model.jpg">
+</p>
+
 ## Vertex Types
-- **EventMatches** are the event matches.
-- **EventAwards** are the event awards.
+We create a vertex type with the entity's name in UpperCamelCase.
+
 - **EventTeams** is a list of event teams.
+- **EventMatches** are the event matches.
 - **EventAlliances** are the alliances between teams.
 - **EventRankings** are the rankings for each event.
+- **EventAwards** are the event awards.
 
 ## Edge Types
+For each relationship type,  we create an edge type with the relationship name (all capitalized and words are separated by an underscore).
+
+- **PARTICIPATES_IN**: Team A participates in match X
+- **HAS_ALLIANCE**: Team A has an alliance with Team B
+- **HAS_RANK**: Team A has a rank
+- **RECIPIENT_OF**: Team A is a recipient of an award
+
+In a TigerGraph system, reverse edges provide the most efficient way to perform graph queries and searches that need to look "backwards"
 
 ## <ins> Schema in Table format </ins>
 
@@ -29,7 +43,7 @@ This file combines the schema script and loading job script.
 **<ins>Event Awards</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| eventKey | STRING | FK |
+| eventKey | STRING | PK |
 | awardType | STRING | Enum (will need to be converted to String) |
 | awardName | STRING |  |
 | team | STRING | Can be NULL |
@@ -38,23 +52,22 @@ This file combines the schema script and loading job script.
 **<ins>Event Teams</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| teamId | INT | PK |
-| teamName | STRING |
+| team | STRING | PK |
 
 **<ins>Event Alliances</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
 | allianceId | INT | PK |
-| captain | STRING |
-| pick1 | STRING |
-| pick2 | STRING |
+| captain | STRING | teamName |
+| pick1 | STRING | primary - team |
+| pick2 | STRING | primary - team |
 
 **<ins>Event Rankings</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
 | rankingId | INT | PK |
 | rank | INT |
-| team | INT |
+| team | INT | String: fr{team}
 | qs | DOUBLE |
 | assist | DOUBLE |
 | autoStat | DOUBLE |
@@ -83,4 +96,4 @@ From outside the shell, you would run
 ## References
 - [Defining a Graph Schema](https://docs.tigergraph.com/dev/gsql-ref/ddl-and-loading/defining-a-graph-schema)
 - [setup_schema.sql](https://raw.githubusercontent.com/tigergraph/ecosys/ldbc/ldbc_benchmark/tigergraph/gsql102/3.0/setup_schema.gsql)
-
+- [Create a loading job](https://docs.tigergraph.com/dev/gsql-ref/ddl-and-loading/creating-a-loading-job)
