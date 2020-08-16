@@ -254,12 +254,16 @@ def create_yMatrix(teamMatchDF,teamsTable):
     Y_def            ndarray      array of the Y matrix for offensive match data
     colNames         list         list of column names for the both the Y offensive and defensive matrices
     robotSpecsCols   list         list of robot specific columns
+    nonAlliSpecsCols list         list of non-alliance specific columns
     '''
     # Before setting up the Y matrix, data types need to be converted to numeric values
     # Specifically, boolean columns need to be converted to int64 and object columns to category
 
     # Create array of robot specific stats (i.e., blue.autoRobot1)
     robotSpecsCols = [s for s in teamMatchDF.columns.values if 'Robot' in s]
+
+    # Create array of non-alliance specific stats (i.e., coopertition)
+    nonAlliSpecsCols = [s for s in teamMatchDF.columns.values if (not s.startswith('blue'))&(not s.startswith('red'))]
 
     for i in range(6,len(teamMatchDF.columns.values)):
         colName = teamMatchDF.columns.values[i]
@@ -273,6 +277,7 @@ def create_yMatrix(teamMatchDF,teamsTable):
     # Also, removing robot specific stats (these stats would not be helpful for the Y matrix)
     numMatchData = teamMatchDF.copy()
     numMatchData = numMatchData.drop(robotSpecsCols, axis=1)
+    numMatchData = numMatchData.drop(nonAlliSpecsCols, axis=1)
     numMatchData = pd.get_dummies(numMatchData.iloc[:,6:len(numMatchData.columns.values)])
     numMatchData = numMatchData[np.sort(numMatchData.columns.tolist())]
 
@@ -312,4 +317,4 @@ def create_yMatrix(teamMatchDF,teamsTable):
     else:
         return 'Error: Number of blue columns is not equal to red columns'
     
-    return Y_off,Y_def,colNames,robotSpecsCols
+    return Y_off,Y_def,colNames,robotSpecsCols,nonAlliSpecsCols
