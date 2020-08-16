@@ -10,8 +10,7 @@ CREATE VERTEX EventTeams (PRIMARY_ID team STRING) WITH primary_id_as_attribute="
 
 # Event Matches
 CREATE VERTEX EventMatches (
-    PRIMARY_ID eventKey STRING, 
-    matchKey STRING,
+    PRIMARY_ID eventMatchKey STRING, 
     red1 STRING, 
     red2 STRING, 
     red3 STRING, 

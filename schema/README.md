@@ -29,8 +29,7 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 **<ins>Event Matches</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| eventKey | STRING | PK |
-| matchKey | STRING |
+| eventMatchKey | STRING | PK |
 | red1 | STRING |
 | red2 | STRING |
 | red3 | STRING |
