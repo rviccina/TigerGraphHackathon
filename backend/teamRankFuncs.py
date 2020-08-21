@@ -4,6 +4,9 @@ import statsmodels.formula.api as smf
 import statsmodels.api as sm
 import pystan
 
+from scipy.stats import shapiro, normaltest, anderson
+from scipy.stats import ttest_1samp, wilcoxon
+
 def bayes_TeamRankModel(teamData,\
                         rankData,\
                         nIter=5000,\
@@ -147,7 +150,6 @@ def bayes_TeamRankModel(teamData,\
                             vector<lower=0>[D] lambda;
                             real<lower=0> c2_tilde;
                             real<lower=0> tau_tilde;
-                            real alpha;
                             
                             ordered[K-1] c;
                             real alpha;
@@ -155,7 +157,7 @@ def bayes_TeamRankModel(teamData,\
                         transformed parameters {
                             vector[D] beta;
                             {
-                                real tau0 = (m0 / (M - m0)) * (1.0 / sqrt(1.0 * N));
+                                real tau0 = (m0 / (D - m0)) * (1.0 / sqrt(1.0 * N));
                                 real tau = tau0 * tau_tilde; // tau ~ cauchy(0, tau0)
 
                                 // c2 ~ inv_gamma(half_slab_df, half_slab_df * slab_scale2)
@@ -253,22 +255,102 @@ def bayes_TeamRankModel(teamData,\
                                      index=s['summary_rownames'])
 
         # Rename beta columns with corresponding y column names
-        #beta_shape = fit_sample.extract()['beta'].shape
-        #
-        #if (beta_shape[1] == len(yColNames)) & (beta_shape[2] == len(teamsTable)):
-        #    betaDict = {}
-        #
-        #    for i in range(beta_shape[1]):
-        #        for j in range(beta_shape[2]):
-        #            col1 = yColNames[i]
-        #            col2 = teamsTable.at[j,0]
-        #
-        #            betaDict['beta['+str(i+1)+','+str(j+1)+']'] = (col1,col2)
-        #    
-        #    fit_DF = fit_DF.rename(columns=betaDict)
-        #else:
-        #    return 'Number of beta sampling columns ('+str(beta_shape[1])+') != colNames ('+str(len(yColNames))+') and/or rows ('+str(beta_shape[2])+') != number of teams ('+str(len(teamsTable))+')'
+        beta_shape = fit_sample.extract()['beta'].shape
+
+        if beta_shape[1] == teamData.shape[1]:
+            betaDict = {}
+        
+            for i in range(beta_shape[1]):    
+                betaDict['beta['+str(i+1)+']'] = teamData.columns[i]
+            
+        else:
+            return 'Number of beta sampling columns ('+str(beta_shape[1])+') != colNames ('+str(teamData.shape[1])+')'
     else:
         return 'X matrix and Y matrix do not have the same number of rows'
 
-    return fitSampling_DF,fitSummary_DF
+    return fitSampling_DF,fitSummary_DF,betaDict
+
+def normalityTests(data,\
+                   alpha=0.05):
+
+    try:
+        testResult = ''
+        normBool = True
+
+        # Shapiro-Wilk test for normality
+        shapiro_stat, shapiro_p = shapiro(data)
+
+        if shapiro_p > alpha:
+            testResult += 'Shapiro-Wilk test fails to reject H_0 (stat=%.3f, p=%.3f)\n' % (shapiro_stat, shapiro_p)
+        else:
+            testResult += 'Shapiro-Wilk test rejects H_0 (stat=%.3f, p=%.3f)\n' % (shapiro_stat, shapiro_p)
+            normBool = False
+        
+        # D'Agostino’s K^2 test for normality
+        d_agostino_stat, d_agostino_p = normaltest(data)
+
+        if d_agostino_p > alpha:
+            testResult += 'D\'Agostino’s K^2 test fails to reject H_0 (stat=%.3f, p=%.3f)\n' % (d_agostino_stat, d_agostino_p)
+        else:
+            testResult += 'D\'Agostino’s K^2 test rejects H_0 (stat=%.3f, p=%.3f)\n' % (d_agostino_stat, d_agostino_p)
+            normBool = False
+        
+        # Anderson-Darling Test for normality
+        anderson_result = anderson(data)
+
+        for i in range(len(anderson_result.critical_values)):
+            sl = anderson_result.significance_level[i]
+            cv = anderson_result.critical_values[i]
+
+            if anderson_result.statistic < anderson_result.critical_values[i]:
+                testResult += 'Anderson-Darling test fails to reject H_0 (sig. level=%.3f, crit. value=%.3f)\n' % (sl, cv)
+            else:
+                testResult += 'Anderson-Darling test rejects H_0 (sig. level=%.3f, crit. value=%.3f)\n' % (sl, cv)
+                normBool = False
+
+        return testResult,normBool
+    except:
+        return None
+
+def oneSampleTest(data,\
+                  alpha=0.05,\
+                  dictVals={'axis':0,\
+                            'nan_policy':'propagate',\
+                            'zero_method':'wilcox',\
+                            'corrBool':False,\
+                            'mode':'auto'}):
+    try:
+        normResult = normalityTests(data,\
+                                    alpha)
+        
+        if not (normResult is None):
+            normBool = normResult[1]
+
+            if normBool:
+                axis = dictVals['axis']
+                nan_policy = dictVals['nan_policy']
+
+                stat, pvalue = ttest_1samp(data,\
+                                           0,\
+                                           axis=axis,\
+                                           nan_policy=nan_policy)
+                testType = 'Student\'s t-test'
+            else:
+                zero_method = dictVals['zero_method']
+                corrBool = dictVals['corrBool']
+                mode = dictVals['mode']
+
+                stat, pvalue = wilcoxon(data,\
+                                        zero_method=zero_method,\
+                                        correction=corrBool,\
+                                        mode=mode)
+                testType = 'Wilcoxon Signed-Rank Test'
+        
+        else:
+            testType = None
+            stat = None
+            pvalue = None
+
+        return testType,stat,pvalue
+    except:
+        return None

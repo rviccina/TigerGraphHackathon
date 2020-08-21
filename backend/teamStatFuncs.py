@@ -93,7 +93,7 @@ def bayes_TeamStat(xData,\
 
         if (beta_shape[1] == len(yColNames)) & (beta_shape[2] == len(teamsTable)):
             betaDict = {}
-
+            
             for i in range(beta_shape[1]):
                 for j in range(beta_shape[2]):
                     col1 = yColNames[i]
@@ -101,13 +101,13 @@ def bayes_TeamStat(xData,\
 
                     betaDict['beta['+str(i+1)+','+str(j+1)+']'] = (col1,col2)
             
-            fit_DF = fit_DF.rename(columns=betaDict)
+            #fit_DF = fit_DF.rename(columns=betaDict)
         else:
             return 'Number of beta sampling columns ('+str(beta_shape[1])+') != colNames ('+str(len(yColNames))+') and/or rows ('+str(beta_shape[2])+') != number of teams ('+str(len(teamsTable))+')'
     else:
         return 'X matrix and Y matrix do not have the same number of rows'
 
-    return fit_DF
+    return fit_DF,betaDict
 
 def OLS_TeamStats(xData,y_OffData,y_DefData,colNames,teamsTable):
     '''
