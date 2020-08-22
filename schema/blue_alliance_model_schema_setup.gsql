@@ -66,19 +66,35 @@ CREATE GRAPH blue_alliance_model (*)
 
 # GSQL script for loading Blue Alliance Model data
 
-// USE GRAPH blue_alliance_model
-// CREATE LOADING JOB load_blue_alliance_model FOR GRAPH blue_alliance_model {
-//   // define vertex
-//   DEFINE FILENAME v_comment_file;
+USE GRAPH blue_alliance_model
+CREATE LOADING JOB load_blue_alliance_model FOR GRAPH blue_alliance_model {
+  // define vertex
+  // TODO: Edit paths
+  DEFINE FILENAME teams_file="/home/tigergraph/2015azch_teams.csv";
+  DEFINE FILENAME team_matches_file="/home/tigergraph/2015azch_matches.csv"; // matches is a keyword in gsql
+  DEFINE FILENAME alliances_file="/home/tigergraph/2015azch_alliances.csv";
+  DEFINE FILENAME rankings_file="/home/tigergraph/2015azch_rankings.csv";
+  DEFINE FILENAME awards_file="/home/tigergraph/2015azch_awards.csv";
 
-//   // define edge
-//   DEFINE FILENAME forum_containerOf_post_file;
+  // define edge
+  // TODO: Change file names (if needed)
+  DEFINE FILENAME participates_in_file="/home/tigergraph/2015azch_participates_in.csv";
+  DEFINE FILENAME has_alliance_file="/home/tigergraph/2015azch_has_alliance.csv";
+  DEFINE FILENAME has_rank_file="/home/tigergraph/2015azch_has_rank.csv";
+  DEFINE FILENAME recipient_of_file="/home/tigergraph/2015azch_recipient_of.csv";
 
-//   // load vertex
-//   LOAD v_comment_file
-//     TO VERTEX Comment VALUES ($0, $1, $2, $3, $4, $5) USING header="true", separator="|";
+  // load vertex
+  LOAD teams_file TO VERTEX EventTeams VALUES ($0) USING header="true", separator=",";
+  LOAD team_matches_file TO VERTEX EventMatches VALUES ($0, $1, $2, $3, $4, $5, $6, $7, $8) USING header="true", separator=",";
+  LOAD alliances_file TO VERTEX EventAlliances VALUES ($0, $1, $2, $3) USING header="true", separator=",";
+  LOAD rankings_file TO VERTEX EventRankings VALUES ($0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) USING header="true", separator=",";
+  LOAD awards_file TO VERTEX EventAwards VALUES ($0, $1, $2, $3, $4) USING header="true", separator=",";
   
-//   // load edge
-//   LOAD forum_containerOf_post_file
-//     TO EDGE CONTAINER_OF VALUES ($0, $1) USING header="true", separator="|";
-// }
+  // load edge
+  // TODO: Edit number of value arguments
+  LOAD participates_in_file TO EDGE PARTICIPATES_IN VALUES ($0, $1) USING header="true", separator=",";
+  LOAD has_alliance_file TO EDGE HAS_ALLIANCE VALUES ($0, $1) USING header="true", separator=",";
+  LOAD has_rank_file TO EDGE HAS_RANK VALUES ($0, $1) USING header="true", separator=",";
+  LOAD recipient_of_file TO EDGE RECIPIENT_OF VALUES ($0, $1) USING header="true", separator=",";
+
+}

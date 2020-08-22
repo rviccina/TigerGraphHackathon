@@ -26,6 +26,11 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 
 ## <ins> Schema in Table format </ins>
 
+**<ins>Event Teams</ins>**
+| **Attribute** | **Data Type** | **Note** |
+|-|-|-|
+| team | STRING | PK |
+
 **<ins>Event Matches</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
@@ -38,20 +43,6 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 | blue3 | STRING |
 | redScore | INT |
 | blueScore | INT |
-
-**<ins>Event Awards</ins>**
-| **Attribute** | **Data Type** | **Note** |
-|-|-|-|
-| eventKey | STRING | PK |
-| awardType | STRING | Enum (will need to be converted to String) |
-| awardName | STRING |  |
-| team | STRING | Can be NULL |
-| awardee | STRING | Can be NULL |
-
-**<ins>Event Teams</ins>**
-| **Attribute** | **Data Type** | **Note** |
-|-|-|-|
-| team | STRING | PK |
 
 **<ins>Event Alliances</ins>**
 | **Attribute** | **Data Type** | **Note** |
@@ -75,6 +66,15 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 | record | STRING |
 | dq | INT |
 | played | INT |
+
+**<ins>Event Awards</ins>**
+| **Attribute** | **Data Type** | **Note** |
+|-|-|-|
+| eventKey | STRING | PK |
+| awardType | STRING | Enum (will need to be converted to String) |
+| awardName | STRING |  |
+| team | STRING | Can be NULL |
+| awardee | STRING | Can be NULL |
 
 ### Notes
 By convention, we have put all of our CREATE VERTEX, CREATE EDGE, and the final CREATE GRAPH statements in one file.
