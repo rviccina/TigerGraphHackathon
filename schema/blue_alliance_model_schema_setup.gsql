@@ -45,12 +45,10 @@ CREATE VERTEX EventRankings (
     WITH primary_id_as_attribute="TRUE"
 
 # Event Awards 
-// awardType - enum
 // team - can be null
 // awardee - can be null
 CREATE VERTEX EventAwards (
-    PRIMARY_ID eventKey STRING, 
-    awardType STRING,
+    PRIMARY_ID eventAwardKey STRING, 
     awardName STRING, 
     team STRING, 
     awardee STRING) WITH primary_id_as_attribute="TRUE"

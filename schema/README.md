@@ -34,7 +34,7 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 **<ins>Event Matches</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| eventMatchKey | STRING | PK |
+| eventMatchKey | STRING | PK, example: `<event_key>_<match_key>` |
 | red1 | STRING |
 | red2 | STRING |
 | red3 | STRING |
@@ -70,8 +70,7 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 **<ins>Event Awards</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| eventKey | STRING | PK |
-| awardType | STRING | Enum (will need to be converted to String) |
+| eventAwardKey | STRING | PK, example: `<event_key>_<award_type_enum>` |
 | awardName | STRING |  |
 | team | STRING | Can be NULL |
 | awardee | STRING | Can be NULL |
