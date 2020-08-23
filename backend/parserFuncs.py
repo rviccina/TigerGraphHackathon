@@ -37,6 +37,11 @@ def frc_matchData(eventKey,TBA_auth_key,qualBool=True):
         matchKeys = qualsTable['key'].reset_index(drop=True)
         scoreBreakdown = qualsTable['score_breakdown'].reset_index(drop=True)
 
+        noneCheckBool = all([x is None for x in scoreBreakdown])
+    
+        if noneCheckBool:
+            scoreBreakdown = alliances.copy()
+
         nScoreBreakdown = len(scoreBreakdown)
     else:
         elimTable = matchesTable.loc[matchesTable['comp_level'] != 'qm',:]
@@ -44,6 +49,11 @@ def frc_matchData(eventKey,TBA_auth_key,qualBool=True):
         alliances = elimTable['alliances'].reset_index(drop=True)
         matchKeys = elimTable['key'].reset_index(drop=True)
         scoreBreakdown = elimTable['score_breakdown'].reset_index(drop=True)
+
+        noneCheckBool = all([x is None for x in scoreBreakdown])
+    
+        if noneCheckBool:
+            scoreBreakdown = alliances.copy()
 
         nScoreBreakdown = len(scoreBreakdown)
 
@@ -56,6 +66,10 @@ def frc_matchData(eventKey,TBA_auth_key,qualBool=True):
         if j == 0:
             df = pd.DataFrame.from_dict(json_normalize(scoreBreakdown[j]),\
                                         orient='columns')
+            
+            if noneCheckBool:
+                df = df.loc[:,['blue.score','red.score']]
+
             df = pd.concat([blueAlli,redAlli,df],\
                            axis=1,\
                            sort=False)
@@ -64,6 +78,9 @@ def frc_matchData(eventKey,TBA_auth_key,qualBool=True):
         else:
             temp = pd.DataFrame.from_dict(json_normalize(scoreBreakdown[j]),\
                                           orient='columns')
+            if noneCheckBool:
+                temp = temp.loc[:,['blue.score','red.score']]
+
             temp = pd.concat([blueAlli,redAlli,temp],\
                              axis=1,\
                              sort=False)
