@@ -1,0 +1,161 @@
+#flask and dash together
+from flask import Flask, render_template
+from dash import Dash
+import dash_core_components as dcc
+import dash_html_components as html
+import dash_core_components as dcc
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+import json
+import requests
+import pandas as pd
+from pandas.io.json import json_normalize
+
+server = Flask(__name__)
+@server.route('/flask')
+def index():
+    #Authentication Code for BlueAlliance API
+    headers = {'X-TBA-Auth-Key' : '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'}
+    
+    #Pull list of events for a specific year
+    r = requests.get('https://www.thebluealliance.com/api/v3/events/2016', headers = headers)
+        
+    events_dump = r.json()
+    city_States = []
+    for event in events_dump:
+        city_States.append({'label': event['state_prov'], 'value':event['key']})
+    
+    return r.text
+    
+
+app = Dash(
+    __name__,
+    server=server,
+    url_base_pathname='/dash/'
+)
+
+#this is the array set up for the drop down year
+year_options = [i for i in range(1992, 2020)]
+
+#create 
+app.layout =html.Div([
+    html.H1('Blue Alliance Data', style = {
+        'textAlign': 'center'
+    }),
+    #first drop-down for year
+    html.Label(["Please select a year",
+    dcc.Dropdown(
+        id = 'year-dropdown',
+        options=[
+           {'label': k, 'value': k} for k in year_options
+           
+        ]
+    )]),
+
+    #second drop-down for event location
+    html.Label(id = 'event-label', style = {'visibility': 'hidden'}, children = ["Please select an event",
+    dcc.Dropdown(
+        id = 'event-dropdown',
+        options=[]
+    )]),
+
+    #Drop down for reports 
+   html.Label(id = 'multiselect-reports-label', style = {'visibility': 'hidden'}, children = ["Please select a report from the list",
+    dcc.Dropdown(
+        id = 'report-dropdown',
+        options=[
+            {'label': 'Average Stats by Team', 'value': 'Ave stats by team'},
+            {'label': 'Match Stats', 'value': 'Match Stats'},
+            {'label': 'Draft Simulator', 'value': 'Draft Simulator'},
+            {'label': 'Rank Model', 'value': 'Rank Model'},
+            {'label': 'Elimination Simulator', 'value': 'Eliminatiion Simulator'}
+        ],
+        multi = True
+    )]), 
+    #tabs to diplsay report
+    #dcc.Tabs(id = 'tab-options', style = {'visibility': 'hidden'}, 
+     #   children = [dcc.Tab(label= 'Average Stats by Team', value = 'Average Stats by Team'),
+    #]),
+    html.Div(id = 'tab-options', style = {'visibility': 'hidden'}),
+    
+    html.Div(id = 'tabs-report-content', style = {'visibility': 'hidden'}),
+
+    html.Div(id = 'dropdown-container', children = [])
+    #html.Div(id='dd-output-container')
+])
+
+@app.callback(
+    #Output('dd-output-container', 'children'),
+    [Output('event-label', 'style'), Output('event-dropdown', 'options')],
+    [Input('year-dropdown', 'value')]
+    #[State('dropdown-container', 'children')]
+)
+
+def display_dropdown(year):
+    eventStyle = {'visibility': 'hidden'}
+    city_States = []
+
+    if not (year is None):
+        eventStyle = {'visibility': 'visible'}
+        
+        #Authentication Code for BlueAlliance API
+        headers = {'X-TBA-Auth-Key' : '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'}
+    
+        #Pull list of events for a specific year
+        r = requests.get('https://www.thebluealliance.com/api/v3/events/' + str(year), headers = headers)
+        
+        events_dump = r.json()
+
+        #Extracting the desired data into a list: city, state_prov, event
+        for event in events_dump:
+            if not(event['city'] is None):
+                city_States.append({'label': event['name']+ ', ' +event['city']+', ' +event['state_prov'], 'value':event['key']})
+
+    
+    return eventStyle, city_States
+
+@app.callback(
+    Output('multiselect-reports-label', 'style'),
+    [Input('event-dropdown', 'value')]
+)
+
+def display_reports_dropdown(city_event):
+    reportsStyle = {'visibility': 'hidden'}
+
+    if not(city_event is None):
+        reportsStyle = {'visibility': 'visible'}
+    
+    return  reportsStyle
+
+#separate app callback for tabs repot content, make style visible
+#if that tab is selected then show the content for that tab
+#Output('tab-options', 'children')
+
+@app.callback(
+    [Output('tab-options', 'style'), Output('tab-options', 'children')],
+    [Input('report-dropdown', 'value')]
+)
+
+def display_tab(tab_triggered):
+
+    tabStyle = {'visibility': 'hidden'}
+    tab_report_name = []
+
+    if not(tab_triggered is None):
+
+        for x in tab_triggered:
+            tab_report_name.append(dcc.Tab(label =  x, value = x))
+            print(tab_report_name)
+
+        tabStyle = {'visibility': 'visible'}
+        tab_report_name = html.Div([
+            dcc.Tabs(id = 'tabs-example', children= 
+                tab_report_name
+            )
+        ])
+        
+    return tabStyle, tab_report_name
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
