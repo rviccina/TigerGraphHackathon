@@ -76,7 +76,8 @@ app.layout =html.Div([
     #dcc.Tabs(id = 'tab-options', style = {'visibility': 'hidden'}, 
      #   children = [dcc.Tab(label= 'Average Stats by Team', value = 'Average Stats by Team'),
     #]),
-    html.Div(id = 'tab-options', style = {'visibility': 'hidden'}),
+    html.Div(id = 'tab-options', style = {'visibility': 'hidden'},\
+        children = [dcc.Tabs(id = 'tabs-reports', children= [])]),
     
     html.Div(id = 'tabs-report-content', style = {'visibility': 'hidden'}),
 
@@ -132,7 +133,7 @@ def display_reports_dropdown(city_event):
 #Output('tab-options', 'children')
 
 @app.callback(
-    [Output('tab-options', 'style'), Output('tab-options', 'children')],
+    [Output('tab-options', 'style'), Output('tabs-reports', 'children')],
     [Input('report-dropdown', 'value')]
 )
 
@@ -145,14 +146,10 @@ def display_tab(tab_triggered):
 
         for x in tab_triggered:
             tab_report_name.append(dcc.Tab(label =  x, value = x))
-            print(tab_report_name)
+        
+        print(tab_report_name)
 
         tabStyle = {'visibility': 'visible'}
-        tab_report_name = html.Div([
-            dcc.Tabs(id = 'tabs-example', children= 
-                tab_report_name
-            )
-        ])
         
     return tabStyle, tab_report_name
 
