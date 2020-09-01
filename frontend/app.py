@@ -14,18 +14,7 @@ from pandas.io.json import json_normalize
 server = Flask(__name__)
 @server.route('/flask')
 def index():
-    #Authentication Code for BlueAlliance API
-    headers = {'X-TBA-Auth-Key' : '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'}
-    
-    #Pull list of events for a specific year
-    r = requests.get('https://www.thebluealliance.com/api/v3/events/2016', headers = headers)
-        
-    events_dump = r.json()
-    city_States = []
-    for event in events_dump:
-        city_States.append({'label': event['state_prov'], 'value':event['key']})
-    
-    return r.text
+    return "hello flask"
     
 
 app = Dash(
@@ -64,18 +53,16 @@ app.layout =html.Div([
     dcc.Dropdown(
         id = 'report-dropdown',
         options=[
-            {'label': 'Average Stats by Team', 'value': 'Ave stats by team'},
+            {'label': 'Average Stats by Team', 'value': 'Average Stats by Team'},
             {'label': 'Match Stats', 'value': 'Match Stats'},
             {'label': 'Draft Simulator', 'value': 'Draft Simulator'},
             {'label': 'Rank Model', 'value': 'Rank Model'},
-            {'label': 'Elimination Simulator', 'value': 'Eliminatiion Simulator'}
+            {'label': 'Elimination Simulator', 'value': 'Elimination Simulator'}
         ],
         multi = True
     )]), 
     #tabs to diplsay report
-    #dcc.Tabs(id = 'tab-options', style = {'visibility': 'hidden'}, 
-     #   children = [dcc.Tab(label= 'Average Stats by Team', value = 'Average Stats by Team'),
-    #]),
+
     html.Div(id = 'tab-options', style = {'visibility': 'hidden'},\
         children = [dcc.Tabs(id = 'tabs-reports', children= [])]),
     
@@ -128,7 +115,7 @@ def display_reports_dropdown(city_event):
     
     return  reportsStyle
 
-#separate app callback for tabs repot content, make style visible
+#separate app callback for tabs report content, make style visible
 #if that tab is selected then show the content for that tab
 #Output('tab-options', 'children')
 
@@ -137,6 +124,7 @@ def display_reports_dropdown(city_event):
     [Input('report-dropdown', 'value')]
 )
 
+#Creates the tab from the multi-select drop-down
 def display_tab(tab_triggered):
 
     tabStyle = {'visibility': 'hidden'}
@@ -146,12 +134,53 @@ def display_tab(tab_triggered):
 
         for x in tab_triggered:
             tab_report_name.append(dcc.Tab(label =  x, value = x))
-        
-        print(tab_report_name)
 
         tabStyle = {'visibility': 'visible'}
         
     return tabStyle, tab_report_name
+
+
+@app.callback(
+    [Output('tabs-report-content', 'children'), Output('tabs-report-content', 'style')],
+    [Input('tabs-reports', 'value')])
+
+#Dictates which content will be displayed
+def display_tab_content(tab):
+    
+    contentStyle = {'visibility': 'hidden'}
+    content = []
+
+    if tab == 'Average Stats by Team':
+        contentStyle = {'visibility': 'visible'}
+        content = html.Div([
+            html.H3('Average Stats By Team')
+        ])
+    
+    if tab == 'Match Stats':
+        contentStyle = {'visibility': 'visible'}
+        content = html.Div([
+            html.H3('Match Stats')
+        ])
+
+    if tab == 'Draft Simulator':
+        contentStyle = {'visibility': 'visible'}
+        content = html.Div([
+            html.H3('Draft Simulator')
+        ])
+    
+    if tab == 'Rank Model':
+        contentStyle = {'visibility': 'visible'}
+        content = html.Div([
+            html.H3('Rank Model')
+        ])
+    
+    if tab == 'Elimination Simulator':
+        contentStyle = {'visibility': 'visible'}
+        content = html.Div([
+            html.H3('Elimination Simulator')
+        ])
+
+    return content, contentStyle
 
 
 if __name__ == '__main__':
