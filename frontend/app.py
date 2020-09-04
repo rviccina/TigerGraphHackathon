@@ -9,12 +9,25 @@ from dash.exceptions import PreventUpdate
 import json
 import requests
 import pandas as pd
-from pandas.io.json import json_normalize
+#from pandas.io.json import json_normalize
+from pandas import json_normalize
+import dash_table
+import os
+import sys
+cwd = os.path.dirname(os.path.realpath(__file__))
+os.chdir(cwd)
+os.chdir("..")
+cwd = os.getcwd()
+sys.path.append(cwd)
+unique = list(set(sys.path))
+sys.path = unique
+from backend import parserFuncs
 
 server = Flask(__name__)
 @server.route('/flask')
 def index():
-    return "hello flask"
+
+    return 'hello'
     
 
 app = Dash(
@@ -26,7 +39,7 @@ app = Dash(
 #this is the array set up for the drop down year
 year_options = [i for i in range(1992, 2020)]
 
-#create 
+#create the layout
 app.layout =html.Div([
     html.H1('Blue Alliance Data', style = {
         'textAlign': 'center'
@@ -142,11 +155,13 @@ def display_tab(tab_triggered):
 
 @app.callback(
     [Output('tabs-report-content', 'children'), Output('tabs-report-content', 'style')],
-    [Input('tabs-reports', 'value')])
+    [Input('tabs-reports', 'value'), Input('event-dropdown', 'value')])
 
 #Dictates which content will be displayed
-def display_tab_content(tab):
+def display_tab_content(tab, key):
     
+    api_key = '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'
+
     contentStyle = {'visibility': 'hidden'}
     content = []
 
@@ -156,25 +171,41 @@ def display_tab_content(tab):
             html.H3('Average Stats By Team')
         ])
     
-    if tab == 'Match Stats':
+    elif tab == 'Match Stats':
+        #Getting the list of things, FRC match function, with event key: obtain data frame
+        #make seperate empty content for html things to include drop down
         contentStyle = {'visibility': 'visible'}
-        content = html.Div([
-            html.H3('Match Stats')
-        ])
+        match_stats_df = []
+        try:
+            match_stats_df = parserFuncs.frc_matchData(key, api_key)
+        except:
+            content = html.Div([
+                html.H3('No match data to display')
+            ])
+        
+        if not (match_stats_df.empty):
+            content = html.Div([
+                html.H3('Match Stats'),
+                dash_table.DataTable(
+                    id = 'table',
+                    columns = [{"name": i, "id": i} for i in match_stats_df.columns],
+                    data = match_stats_df.to_dict('records'),
+                )
+            ])
 
-    if tab == 'Draft Simulator':
+    elif tab == 'Draft Simulator':
         contentStyle = {'visibility': 'visible'}
         content = html.Div([
             html.H3('Draft Simulator')
         ])
     
-    if tab == 'Rank Model':
+    elif tab == 'Rank Model':
         contentStyle = {'visibility': 'visible'}
         content = html.Div([
             html.H3('Rank Model')
         ])
     
-    if tab == 'Elimination Simulator':
+    elif tab == 'Elimination Simulator':
         contentStyle = {'visibility': 'visible'}
         content = html.Div([
             html.H3('Elimination Simulator')
