@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
-from pandas.io.json import json_normalize
+#from pandas.io.json import json_normalize
+from pandas import json_normalize
 
 
 def frc_matchData(eventKey, TBA_auth_key, qualBool=True):
