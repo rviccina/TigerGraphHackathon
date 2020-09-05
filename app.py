@@ -9,18 +9,10 @@ from dash.exceptions import PreventUpdate
 import json
 import requests
 import pandas as pd
-#from pandas.io.json import json_normalize
 from pandas import json_normalize
 import dash_table
 import os
 import sys
-cwd = os.path.dirname(os.path.realpath(__file__))
-os.chdir(cwd)
-os.chdir("..")
-cwd = os.getcwd()
-sys.path.append(cwd)
-unique = list(set(sys.path))
-sys.path = unique
 from backend import parserFuncs
 
 server = Flask(__name__)
@@ -38,6 +30,7 @@ app = Dash(
 
 #this is the array set up for the drop down year
 year_options = [i for i in range(1992, 2020)]
+
 
 #create the layout
 app.layout =html.Div([
