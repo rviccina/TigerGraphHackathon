@@ -40,17 +40,15 @@ CREATE VERTEX EventRankings (
     tc DOUBLE, 
     teleop DOUBLE, 
     record STRING, 
-    dq INT, 
+ //   dq INT, 
     played INT) 
     WITH primary_id_as_attribute="TRUE"
 
 # Event Awards 
-// awardType - enum
 // team - can be null
 // awardee - can be null
 CREATE VERTEX EventAwards (
-    PRIMARY_ID eventKey STRING, 
-    awardType STRING,
+    PRIMARY_ID eventAwardKey STRING, 
     awardName STRING, 
     team STRING, 
     awardee STRING) WITH primary_id_as_attribute="TRUE"
@@ -67,48 +65,34 @@ CREATE GRAPH blue_alliance_model (*)
 # GSQL script for loading Blue Alliance Model data
 
 USE GRAPH blue_alliance_model
-
 CREATE LOADING JOB load_blue_alliance_model FOR GRAPH blue_alliance_model {
-// define vertex
-   DEFINE FILENAME v_eventTeam_file;
-   DEFINE FILENAME v_eventMatch_file;
-   DEFINE FILENAME v_eventAlliance_file;
-   DEFINE FILENAME v_eventRanking_file;
-   DEFINE FILENAME v_eventAward_file;
+  // define vertex
+  // TODO: Edit paths
+  DEFINE FILENAME teams_file="../data/2015azch_teams.csv";
+  DEFINE FILENAME team_matches_file="../data/2015azch_matches_vertex.csv"; // matches is a keyword in gsql
+  DEFINE FILENAME alliances_file="../data/2015azch_alliances_vertex.csv";
+  DEFINE FILENAME rankings_file="../data/2015azch_rankings_vertex.csv";
+  DEFINE FILENAME awards_file="../data/2015azch_awards_vertex.csv";
 
-// define edge
-    DEFINE FILENAME eventTeam_participatesIn_eventMatch_file;
-    DEFINE FILENAME eventTeam_hasAlliance_eventTeam_file;
-    DEFINE FILENAME eventTeam_hasRank_eventRanking_file;
-    DEFINE FILENAME eventTeam_recipientOf_eventAward_file;
+  // define edge
+  // TODO: Change file names (if needed)
+  DEFINE FILENAME participates_in_file="../data/2015azch_matches_edge.csv";
+  DEFINE FILENAME has_alliance_file="../data/2015azch_alliances_edge.csv";
+  DEFINE FILENAME has_rank_file="../data/2015azch_rankings_edge.csv";
+  DEFINE FILENAME recipient_of_file="../data/2015azch_awards_edge.csv";
 
-
-// load vertex
-    LOAD v_eventTeam_file
-        TO VERTEX EventTeams VALUES ($0) USING header="true", separator="|";
-    
-    LOAD v_eventMatch_file 
-        TO VERTEX EventMatches VALUES ($0, $1, $2, $3, $4, $5, $6, $7, $8) USING header="true", separator="|";
-
-    LOAD v_eventAlliance_file
-        TO VERTEX EventAlliances VALUES ($0, $1, $2, $3) USING header="true", separator="|";
-
-    LOAD v_eventRanking_file
-        TO VERTEX EventRankings VALUES ($0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) USING header="true", separator="|";
+  // load vertex
+  LOAD teams_file TO VERTEX EventTeams VALUES ($0) USING header="true", separator=",";
+  LOAD team_matches_file TO VERTEX EventMatches VALUES ($0, $1, $2, $3, $4, $5, $6, $7, $8) USING header="true", separator=",";
+  LOAD alliances_file TO VERTEX EventAlliances VALUES ($0, $1, $2, $3) USING header="true", separator=",";
+  LOAD rankings_file TO VERTEX EventRankings VALUES ($0, $1, $2, $3, $4, $5, $6, $7, $8, $9) USING header="true", separator=",";
+  LOAD awards_file TO VERTEX EventAwards VALUES ($0, $1, $2, $3) USING header="true", separator=",";
   
-   LOAD v_eventAward_file
-        TO VERTEX EventAwards VALUES ($0, $1, $2, $3, $4) USING header="true", separator="|";
+  // load edge
+  // TODO: Fix edge files to show actual team relations for matches edge.csv.
+  LOAD participates_in_file TO EDGE PARTICIPATES_IN VALUES ($1, $0) USING header="true", separator=",";
+  LOAD has_alliance_file TO EDGE HAS_ALLIANCE VALUES ($1, $2) USING header="true", separator=",";
+  LOAD has_rank_file TO EDGE HAS_RANK VALUES ($1, $2) USING header="true", separator=",";
+  LOAD recipient_of_file TO EDGE RECIPIENT_OF VALUES ($1, $2) USING header="true", separator=",";
 
-// load edge
-    LOAD eventTeam_participatesIn_eventMatch_file
-       TO EDGE PARTICIPATES_IN VALUES ($0, $1) USING header="true", separator="|";
-
-    LOAD eventTeam_hasAlliance_eventTeam_file
-        TO EDGE HAS_ALLIANCE VALUES ($0, $1) USING header="true", separator="|";
-
-    LOAD eventTeam_hasRank_eventRanking_file
-        TO EDGE HAS_RANK VALUES ($0, $1) USING header="true", separator="|";
-
-    LOAD eventTeam_recipientOf_eventAward_file
-        TO EDGE RECIPIENT_OF VALUES ($0, $1) USING header="true", separator="|";
 }
