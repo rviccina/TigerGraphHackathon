@@ -27,9 +27,10 @@ def event_alliances_to_csv(event_name, directory):
     edges = list()
     for alliance_role in columns:
         team_col = alliances_vertex_df[alliance_role]
+        alliance_id_col = alliances_vertex_df['allianceId']
 
         new_df = pd.DataFrame({"fr_team": team_col})
-        new_df["alliance"] = alliance_role
+        new_df["alliance"] = alliance_id_col
         new_df["state_city"] = event_name[4::]
 
         edges.append(new_df)
@@ -52,6 +53,15 @@ def event_awards_to_csv(event_name, directory):
     vertex_filename = event_name + "_awards_vertex.csv"
     columns = ['eventKey', 'award', 'team', 'awardee']
     awards_vertex_df = pd.read_csv(awards_csv, names=columns)
+
+    new_awardee_values_list = list()
+    for val in awards_vertex_df['awardee']:
+        if type(val) is float:
+            new_awardee_values_list.append("n/a")
+        else:
+            new_awardee_values_list.append(val)
+
+    awards_vertex_df.update({'awardee': new_awardee_values_list})
     awards_vertex_df.to_csv(f"{directory}/{vertex_filename}")
 
     # Parse Edge
