@@ -18,7 +18,6 @@ MarkupSafe==1.1.1
 numpy==1.19.1
 pandas==1.1.1
 patsy==0.5.1
-pkg-resources==0.0.0
 plotly==4.9.0
 pystan==2.19.1.1
 python-dateutil==2.8.1
