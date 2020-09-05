@@ -34,13 +34,12 @@ CREATE VERTEX EventRankings (
     PRIMARY_ID rankingId UINT, 
     rank INT, 
     team INT, 
-    qs DOUBLE, 
-    assist DOUBLE, 
-    autoStat DOUBLE, 
-    tc DOUBLE, 
-    teleop DOUBLE, 
-    record STRING, 
- //   dq INT, 
+    qualAvg DOUBLE,
+    autoScore INT,
+    container INT, 
+    coopertition INT, 
+    litter INT,
+    tote INT,
     played INT) 
     WITH primary_id_as_attribute="TRUE"
 
