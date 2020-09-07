@@ -74,7 +74,7 @@ def frc_matchData(eventKey, TBA_auth_key, qualBool=True):
                            axis=1,
                            sort=False)
 
-            df.at[df.index[-1], 'matchKey'] = matchKeys[j]
+            df.at[j, 'matchKey'] = matchKeys[j]
         else:
             temp = pd.DataFrame.from_dict(json_normalize(scoreBreakdown[j]),
                                           orient='columns')
@@ -86,10 +86,10 @@ def frc_matchData(eventKey, TBA_auth_key, qualBool=True):
                              sort=False)
             df = df.append(temp,
                            sort=False)
+            df = df.reset_index(drop=True)
 
-            df.at[df.index[-1], 'matchKey'] = matchKeys[j]
-
-    df = df.reset_index(drop=True)
+            df.at[j, 'matchKey'] = matchKeys[j]
+            
     return df
 
 
