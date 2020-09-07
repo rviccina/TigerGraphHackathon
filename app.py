@@ -31,6 +31,17 @@ app = Dash(
 #this is the array set up for the drop down year
 year_options = [i for i in range(1992, 2020)]
 
+#to generate table for Match Stats
+def generate_match_stats(dataframe):
+    match_stats_table = html.Div([
+            html.H3('Match Stats'),
+            dash_table.DataTable(
+                id = 'match_stats_data_table',
+                columns = [{"name": i, "id": i} for i in dataframe.columns],
+                data = dataframe.to_dict('records')
+            )
+        ])
+    return match_stats_table
 
 #create the layout
 app.layout =html.Div([
@@ -72,9 +83,25 @@ app.layout =html.Div([
     html.Div(id = 'tab-options', style = {'visibility': 'hidden'},\
         children = [dcc.Tabs(id = 'tabs-reports', children= [])]),
     
-    html.Div(id = 'tabs-report-content', style = {'visibility': 'hidden'}),
+    html.Div(id = 'tab-content-averageStats', style = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}),
 
-    html.Div(id = 'dropdown-container', children = [])
+    html.Div(id = 'tab-content-matchStats', style = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}, children = [html.Label(id = 'match-StatsLabel', children = ["Please select data to display",
+    dcc.Dropdown(
+        id = 'matchStats-dropdown',
+        options=[],
+        multi = True
+    )]),
+    html.Button('submit table updates', id ='matchStats-submit'),
+    html.Div(id = 'matchStats-table', children = [])]),
+
+    html.Div(id = 'tab-content-draftSimulator', style = {'visibiity': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}),
+
+    html.Div(id = 'tab-content-rankModel', style = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}),
+
+    html.Div(id = 'tab-content-eliminationSimulator', style = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}),
+
+    #for outputs, 
+    html.Div(id = 'output-container', children = [])
     #html.Div(id='dd-output-container')
 ])
 
@@ -147,7 +174,9 @@ def display_tab(tab_triggered):
 
 
 @app.callback(
-    [Output('tabs-report-content', 'children'), Output('tabs-report-content', 'style')],
+    [Output('tab-content-averageStats', 'children'), Output('tab-content-averageStats', 'style'), Output('matchStats-dropdown', 'options'), Output('tab-content-matchStats', 'style'),
+    Output('tab-content-draftSimulator','children'), Output('tab-content-draftSimulator', 'style'), Output('tab-content-rankModel', 'children'),
+    Output('tab-content-rankModel', 'style'),Output('tab-content-eliminationSimulator', 'children'), Output('tab-content-eliminationSimulator', 'style')],
     [Input('tabs-reports', 'value'), Input('event-dropdown', 'value')])
 
 #Dictates which content will be displayed
@@ -155,57 +184,90 @@ def display_tab_content(tab, key):
     
     api_key = '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'
 
-    contentStyle = {'visibility': 'hidden'}
-    content = []
+    averageStatsStyle = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}
+    matchStatsStyle = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}
+    draftSimulatorStyle = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}
+    rankModelStyle = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}
+    eliminationSimulatorStyle = {'visibility': 'hidden', 'height': '0px', 'padding-bottom': '0px', 'padding-top': '0px', 'padding-left': '0px'}
+    contentAveStats = []
+    contentDraftSim = []
+    contentRankModel = []
+    contentEliminationSim = []
+    matchStatsoptions = []
 
     if tab == 'Average Stats by Team':
-        contentStyle = {'visibility': 'visible'}
-        content = html.Div([
+        averageStatsStyle = {'visibility': 'visible'}
+        contentAveStats = html.Div([
             html.H3('Average Stats By Team')
         ])
     
     elif tab == 'Match Stats':
         #Getting the list of things, FRC match function, with event key: obtain data frame
         #make seperate empty content for html things to include drop down
-        contentStyle = {'visibility': 'visible'}
-        match_stats_df = []
+        matchStatsStyle = {'visibility': 'visible'}
+        match_stats_df = pd.DataFrame()
+        
         try:
             match_stats_df = parserFuncs.frc_matchData(key, api_key)
         except:
-            content = html.Div([
-                html.H3('No match data to display')
-            ])
+            matchStatsoptions.append({'label': 'no data available', 'value': ""})
         
         if not (match_stats_df.empty):
-            content = html.Div([
-                html.H3('Match Stats'),
-                dash_table.DataTable(
-                    id = 'table',
-                    columns = [{"name": i, "id": i} for i in match_stats_df.columns],
-                    data = match_stats_df.to_dict('records'),
-                )
-            ])
+
+            for col in match_stats_df:
+                if all([col != 'blue1', col != 'blue2', col != 'blue3', col != 'red1', col != 'red2', col != 'red3']):
+                    matchStatsoptions.append({'label': col, 'value': col})
+
 
     elif tab == 'Draft Simulator':
-        contentStyle = {'visibility': 'visible'}
-        content = html.Div([
+        draftSimulatorStyle = {'visibility': 'visible'}
+        contentDraftSim = html.Div([
             html.H3('Draft Simulator')
         ])
     
     elif tab == 'Rank Model':
-        contentStyle = {'visibility': 'visible'}
-        content = html.Div([
+        rankModelStyle = {'visibility': 'visible'}
+        contentRankModel = html.Div([
             html.H3('Rank Model')
         ])
     
     elif tab == 'Elimination Simulator':
-        contentStyle = {'visibility': 'visible'}
-        content = html.Div([
+        eliminationSimulatorStyle = {'visibility': 'visible'}
+        contentEliminationSim = html.Div([
             html.H3('Elimination Simulator')
         ])
 
-    return content, contentStyle
+    return contentAveStats, averageStatsStyle, matchStatsoptions, matchStatsStyle, contentDraftSim, draftSimulatorStyle, contentRankModel, rankModelStyle, contentEliminationSim, eliminationSimulatorStyle
 
+@app.callback(
+    Output('matchStats-table', 'children'),
+    [Input('matchStats-submit', 'n_clicks'), Input('matchStats-dropdown', 'value'), Input('event-dropdown', 'value')])
+
+
+def update_matchStats_table(n_clicks, multi_choices, eventKey):
+    api_key = '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'
+    df = pd.DataFrame()
+    updated_table = []
+    error_output = []
+    if n_clicks is None:
+        raise PreventUpdate
+    elif (multi_choices == "") or (multi_choices is None):
+        error_output = html.Div([
+            html.H3('Please select a value')
+        ])
+        return error_output
+    else:
+        try:
+            df = parserFuncs.frc_matchData(eventKey, api_key)
+        except:
+            raise PreventUpdate
+        if not (df.empty):
+            col_list = ["blue1", "blue2", "blue3", "red1", "red2", "red3"] + multi_choices
+            updated_table = generate_match_stats(df.loc[:,col_list])
+            #updated_table = generate_match_stats(df)
+            return updated_table
+
+        #dff = df[df.state.str.contains('|'.join(dropdown_value))]
 
 if __name__ == '__main__':
     app.run_server(debug=True)
