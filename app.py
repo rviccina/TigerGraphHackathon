@@ -1,19 +1,27 @@
 #flask and dash together
 from flask import Flask, render_template
+
 from dash import Dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_core_components as dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from dash import callback_context
+import dash_table
+
 import json
 import requests
 import pandas as pd
 from pandas import json_normalize
-import dash_table
+import urllib
+import time
 import os
 import sys
+
 from backend import parserFuncs
+#from backend import tgParserFuncs
+from backend import teamStatFuncs
 
 server = Flask(__name__)
 @server.route('/flask')
@@ -52,10 +60,11 @@ app.layout =html.Div(className='dash-bootstrap',\
                                                            style={'display':'inline-block',\
                                                                   'width':'100px',\
                                                                   'vertical-align':'top'}),\
-                                                  dcc.Dropdown(id='year-dropdown',\
-                                                               options=[{'label': k, 'value': k} for k in year_options],\
-                                                               style={'display': 'inline-block',\
-                                                                      'min-width':'100px'})]),\
+                                                  html.Div(id='year-dropdown-div',\
+                                                           children=[dcc.Dropdown(id='year-dropdown',\
+                                                                     options=[{'label': k, 'value': k} for k in year_options])],\
+                                                           style={'display': 'inline-block',\
+                                                                  'min-width':'100px'})]),\
 
                                # Second drop-down for event location
                                html.Div(id='event-div',\
@@ -66,8 +75,9 @@ app.layout =html.Div(className='dash-bootstrap',\
                                                            style={'display':'inline-block',\
                                                                   'width':'100px',\
                                                                   'vertical-align':'top'}),\
-                                                  dcc.Dropdown(id = 'event-dropdown',\
-                                                               options=[],\
+                                                  html.Div(id='event-dropdown-div',\
+                                                           children=[dcc.Dropdown(id='event-dropdown',\
+                                                                                  options=[])],\
                                                                style={'display': 'inline-block',\
                                                                       'min-width':'700px'})]),
                                
@@ -80,43 +90,81 @@ app.layout =html.Div(className='dash-bootstrap',\
                                                            style={'display':'inline-block',\
                                                                   'width':'100px',\
                                                                   'vertical-align':'top'}),\
-                                                dcc.Dropdown(id='report-dropdown',\
-                                                             options=[{'label': 'Average Stats by Team', 'value': 'Average Stats by Team'},\
-                                                                      {'label': 'Match Stats', 'value': 'Match Stats'},\
-                                                                      {'label': 'Draft Simulator', 'value': 'Draft Simulator'},\
-                                                                      {'label': 'Rank Model', 'value': 'Rank Model'},\
-                                                                      {'label': 'Elimination Simulator', 'value': 'Elimination Simulator'}],\
-                                                             multi = True,\
-                                                             style={'display': 'inline-block',\
-                                                                    'min-width':'250px'})]),\
+                                                  html.Div(id='report-dropdown-div',\
+                                                           children=[dcc.Dropdown(id='report-dropdown',\
+                                                                                  options=[{'label': 'Average Stats by Team', 'value': 'Average Stats by Team'},\
+                                                                                           {'label': 'Match Stats', 'value': 'Match Stats'},\
+                                                                                           {'label': 'Draft Simulator', 'value': 'Draft Simulator'},\
+                                                                                           {'label': 'Rank Model', 'value': 'Rank Model'},\
+                                                                                           {'label': 'Elimination Simulator', 'value': 'Elimination Simulator'}],\
+                                                                                  multi = True)],\
+                                                           style={'display': 'inline-block',\
+                                                                  'min-width':'250px'})]),\
                                
                                # Tabs to display report
                                html.Div(id='tab-options',\
                                         style={'visibility': 'hidden'},\
                                         children=[dcc.Tabs(id = 'tabs-reports',\
                                                            children= [])]),\
+                               
                                html.Div(id='tab-content-averageStats',\
-                                        style={'visibility':'hidden'}),\
+                                        style={'visibility':'hidden'},\
+                                        children=[html.Div(id='averageStats-teams',\
+                                                           style={'width':'300px'},\
+                                                           children=[html.Div(id='teamsLabel',\
+                                                                              children=[html.B('Teams:',\
+                                                                                               style={'font-size':'20px'})],\
+                                                                               style={'display':'inline-block',\
+                                                                                      'width':'100px',\
+                                                                                      'vertical-align':'top'}),\
+                                                                     html.Div(id='averageStats-teams-dropdown-div',\
+                                                                              children=[dcc.Dropdown(id='averageStats-teams-dropdown',\
+                                                                                                     options=[],\
+                                                                                                     multi = False)],\
+                                                                              style={'display':'inline-block',
+                                                                                     'width':'200px',\
+                                                                                     'vertical-align':'top'})]),\
+                                                  html.Div(id='averageStats-display',\
+                                                           style={'width':'300px'},\
+                                                           children=[html.Div(id='displayLabel',\
+                                                                              children=[html.B('Display:',\
+                                                                                               style={'font-size':'20px'})],\
+                                                                               style={'display':'inline-block',\
+                                                                                      'width':'100px',\
+                                                                                      'vertical-align':'top'}),\
+                                                                     html.Div(id='averageStats-display-dropdown-div',\
+                                                                              children=[dcc.Dropdown(id='averageStats-display-dropdown',\
+                                                                                                     options=[{'label':'OLS Estimation Table','value':'olsEstTab'},\
+                                                                                                              {'label':'Bayesian Estimation Table','value':'bayesEstTab'},\
+                                                                                                              {'label':'Bayesian Distribution','value':'bayesDistr'}],\
+                                                                                                     multi = False)],\
+                                                                              style={'display':'inline-block',
+                                                                                     'width':'200px',\
+                                                                                     'vertical-align':'top'})])]),\
+                               
                                html.Div(id='tab-content-matchStats',\
                                         style={'visibility':'hidden'},\
-                                        children=[html.Div(id='match-StatsLabel',
+                                        children=[html.Div(id='match-StatsLabel',\
                                                            children=[html.B('Columns:',\
                                                                             style={'font-size':'20px'})],\
                                                            style={'display':'inline-block',\
                                                                   'width':'100px',\
                                                                   'vertical-align':'top'}),\
-                                                  dcc.Dropdown(id = 'matchStats-dropdown',\
-                                                               options=[],\
-                                                               multi = True,\
-                                                               style={'display':'inline-block',\
-                                                                      'min-width':'300px',\
-                                                                      'vertical-align':'top'}),\
-                               html.Div(id='matchStats-table',\
-                                        children=[])]),\
+                                                  html.Div(id='matchStats-dropdown-div',\
+                                                           children=[dcc.Dropdown(id='matchStats-dropdown',\
+                                                                                  options=[],\
+                                                                                  multi = True)],\
+                                                           style={'display':'inline-block',
+                                                                  'min-width':'300px',\
+                                                                  'max-width':'900px',\
+                                                                  'vertical-align':'top'})]),\
+                               
                                html.Div(id='tab-content-draftSimulator',\
                                         style={'visibiity':'hidden'}),\
+                               
                                html.Div(id='tab-content-rankModel',\
                                         style={'visibility':'hidden'}),\
+                               
                                html.Div(id='tab-content-eliminationSimulator',\
                                         style={'visibility':'hidden'}),\
 
@@ -125,15 +173,19 @@ app.layout =html.Div(className='dash-bootstrap',\
                                         style={'visibility':'hidden'},\
                                         children=[html.Button('Submit',\
                                                               id='submit')]),\
+                               
                                html.Div(id='output-container',\
-                                        style={'visibility':'hidden'},\
-                                        children=[])])
+                                        children=[html.Div(id='averageStats-output'),\
+                                                  html.Div(id='matchStats-table')]),\
+                               dcc.Interval(id='interval',\
+                                            interval=60*60*1000,\
+                                            n_intervals=0)])
 
-#############################################################################
-# Variables that will change when connected to backend (Blue Alliance)
+######################################################################################
+# Variables that will change when connected to backend (currently using Blue Alliance)
 api_key = '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'
 headers = {'X-TBA-Auth-Key':api_key}
-#############################################################################
+######################################################################################
 
 @app.callback([Output('event-div', 'style'),\
                Output('event-dropdown', 'options')],\
@@ -200,7 +252,7 @@ def display_tab(tab_triggered):
     return tabStyle, tab_report_name
 
 @app.callback([Output('submit-div','style'),\
-               Output('tab-content-averageStats','children'),\
+               Output('averageStats-teams-dropdown','options'),\
                Output('tab-content-averageStats','style'),\
                Output('matchStats-dropdown','options'),\
                Output('tab-content-matchStats','style'),\
@@ -212,7 +264,6 @@ def display_tab(tab_triggered):
                Output('tab-content-eliminationSimulator','style')],
               [Input('tabs-reports','value'),\
                Input('event-dropdown','value')])
-
 #Dictates which content will be displayed
 def display_tab_content(tab, key):
     # Submit button style
@@ -225,11 +276,13 @@ def display_tab_content(tab, key):
     # Report sub-menu styles
     averageStatsStyle = {'visibility':'hidden',\
                          'height':'0px',\
+                         'line-height':'0px',\
                          'padding-bottom':'0px',\
                          'padding-top':'0px',\
                          'padding-left':'0px'}
     matchStatsStyle = {'visibility':'hidden',\
                        'height':'0px',\
+                       'line-height':'0px',\
                        'padding-bottom':'0px',\
                        'padding-top': '0px',\
                        'padding-left': '0px'}
@@ -250,7 +303,7 @@ def display_tab_content(tab, key):
                                  'padding-left': '0px'}
     
     # Report Content
-    contentAveStats = []
+    aveStatsTeams = []
     contentDraftSim = []
     contentRankModel = []
     contentEliminationSim = []
@@ -264,8 +317,15 @@ def display_tab_content(tab, key):
                         'padding-left':'0px'}
 
     if tab == 'Average Stats by Team':        
-        averageStatsStyle = {'visibility':'visible'}
-        contentAveStats = html.Div([html.H3('Average Stats By Team')])
+        averageStatsStyle = {'visibility':'visible',\
+                             'padding-bottom':'10px',\
+                             'padding-top':'10px',\
+                             'padding-left':'0px'}
+        rank_df = parserFuncs.frc_eventRankings(key, api_key)
+        teamsList = list(rank_df['team_key'])
+        teamsList.sort()
+
+        aveStatsTeams = [{'label':team, 'value':team} for team in teamsList]
     
     elif tab == 'Match Stats':
         # Getting the list of things, FRC match function, with event key: obtain data frame
@@ -274,7 +334,7 @@ def display_tab_content(tab, key):
                            'padding-bottom':'10px',\
                            'padding-top':'10px',\
                            'padding-left':'0px',\
-                           'min-width':'400px'}
+                           'width':'1000px'}
         match_stats_df = pd.DataFrame()
         
         try:
@@ -284,10 +344,19 @@ def display_tab_content(tab, key):
         
         if not (match_stats_df.empty):
 
+            uniqueCols = []
             for col in match_stats_df:
                 if not (col in ['blue1','blue2','blue3','red1','red2','red3']):
-                    matchStatsoptions.append({'label': col, 'value': col})
+                    splitCol = col.split('.')
 
+                    if (splitCol[0] == 'blue') | (splitCol[0] == 'red'):
+                        uniqueCols.append('color.'+splitCol[1])
+                    else:
+                        uniqueCols.append(col)
+                    
+            uniqueCols = list(set(uniqueCols))
+            uniqueCols.sort()
+            matchStatsoptions = [{'label': val.split('.')[1], 'value': val} if val.split('.')[0] == 'color' else {'label': val, 'value': val} for val in uniqueCols ]
 
     elif tab == 'Draft Simulator':
         draftSimulatorStyle = {'visibility': 'visible'}
@@ -307,81 +376,268 @@ def display_tab_content(tab, key):
             html.H3('Elimination Simulator')
         ])
 
-    return submitStyle, contentAveStats, averageStatsStyle, matchStatsoptions, matchStatsStyle, contentDraftSim, draftSimulatorStyle, contentRankModel, rankModelStyle, contentEliminationSim, eliminationSimulatorStyle
+    return submitStyle, aveStatsTeams, averageStatsStyle, matchStatsoptions, matchStatsStyle, contentDraftSim, draftSimulatorStyle, contentRankModel, rankModelStyle, contentEliminationSim, eliminationSimulatorStyle
 
 # Callback for match statistics report
-@app.callback([Output('output-container','children'),\
-               Output('output-container','style')],\
-              [Input('submit','n_clicks')],\
+@app.callback([Output('matchStats-table','children'),\
+               Output('matchStats-table','style')],\
+              [Input('submit','n_clicks'),
+               Input('tabs-reports','value')],\
               [State('matchStats-dropdown','value'),\
                State('event-dropdown','value')])
-
 def update_matchStats_table(n_clicks,\
+                            tabVal,\
                             multi_choices,\
                             eventKey):
     
-    outputStyle = {'visibility':'hidden',\
-                   'padding-bottom':'0px',\
-                   'padding-top':'0px',\
-                   'padding-left':'0px'}
+#    # Set submitClicks to -1
+#    submitClicks = -1
+#
+#    if n_clicks is None:
+#        n_clicks = 0
     
-    df = pd.DataFrame()
-    output = []
+    #time.sleep(10)
+    #print(matchStatsList)
     
-    if n_clicks is None:
-        raise PreventUpdate
-    
-    if multi_choices:
-        try:
-            df = parserFuncs.frc_matchData(eventKey, api_key)
-        except:
-            raise PreventUpdate
-        
-        if not df.empty:
-            outputStyle = {'visibility':'visible',\
-                           'padding-bottom':'10px',\
-                           'padding-top':'10px',\
-                           'padding-left':'0px'}
-            col_list = ['blue1','blue2','blue3','red1','red2','red3'] + multi_choices
-            updated_table = generate_table(df.loc[:,col_list],'matchStats')
+    if (tabVal == 'Match Stats'):
+        outputStyle = {'visibility':'visible'}
 
-            output = updated_table
+        if multi_choices:
+            df = parserFuncs.frc_matchData(eventKey, api_key)
+
+            blueAlliList = ['blue.'+value.split('.')[1] for value in multi_choices if value.split('.')[0] == 'color']
+            redAlliList = ['red.'+value.split('.')[1] for value in multi_choices if value.split('.')[0] == 'color']
+            nonAlliList = [value for value in multi_choices if value.split('.')[0] != 'color']
+
+            col_list = ['blue1','blue2','blue3','red1','red2','red3'] + nonAlliList + blueAlliList + redAlliList
+            #updated_table = generate_table(df.loc[:,col_list],'matchStats','Match Stats')
+
+            subsetDF = df.loc[:,col_list]
+            #col_list = [x.replace('.','_') for x in col_list]
+
+            title = html.Div(id='matchStats-title-div',\
+                             children=html.B('Match Stats',\
+                                             style={'font-size':'40px'}))
             
+            temp = html.Div(id='matchStats-table-div',\
+                            children=[dash_table.DataTable(id='matchStats-table-output',\
+                                                           columns=[{'name': i, 'id': i} for i in col_list],\
+                                                           style_cell={'textAlign':'left'},\
+                                                           data=subsetDF.to_dict('records'),\
+                                                           filter_action='native',\
+                                                           sort_action='native',\
+                                                           sort_mode='multi')])
+            
+            tempData = subsetDF.copy()
+            csv_string = tempData.to_csv(index=False, encoding='utf-8')
+            csv_string = 'data:text/csv;charset=utf-8,' + urllib.parse.quote(csv_string)
+
+            downloadDiv = html.A('Download Table',\
+                                 id='matchStat-download-button',\
+                                 download='matchStats.csv',\
+                                 href=csv_string,\
+                                 style={'font-size':'20px'})
+
+            #output = [title,downloadDiv]
+            output = [title,downloadDiv,temp]
+
+            return output, outputStyle
+        else:
+            error_output = html.Div(id='error-div',\
+                                    children=[html.B('Please select a column value',\
+                                                     style={'font-size':'20px',\
+                                                            'color':'red'})],\
+                                    style={'padding-bottom':'10px',\
+                                           'padding-top':'10px',\
+                                           'padding-left':'0px'})            
+            output = [error_output]
+
+            return output, outputStyle
+
     else:
+        output = []
+        outputStyle = {'visibility':'hidden'}
+        
+        return output, outputStyle
+
+# Callback for average team statistics report
+@app.callback([Output('averageStats-output','children'),\
+               Output('averageStats-output','style')],\
+              [Input('submit','n_clicks'),
+               Input('tabs-reports','value')],\
+              [State('averageStats-teams-dropdown','value'),\
+               State('averageStats-display-dropdown','value'),\
+               State('event-dropdown','value')])
+
+def update_averageTeamStats(n_clicks,\
+                            tabVal,\
+                            teamValue,\
+                            displayType,\
+                            eventKey):
+
+    #print(aveOutputList)
+    
+    if (tabVal == 'Average Stats by Team'):
         outputStyle = {'visibility':'visible',\
                        'padding-bottom':'10px',\
                        'padding-top':'10px',\
                        'padding-left':'0px'}
-        error_output = html.Div(id='error-div',\
-                                children=[html.B('Please select a column value',\
-                                                 style={'font-size':'20px',\
-                                                        'color':'red'})],\
-                                style={'padding-bottom':'10px',\
-                                       'padding-top':'10px',\
-                                       'padding-left':'0px'})
-        output = error_output
-    
-    return output,outputStyle
+
+        if teamValue and displayType:
+            match_df = parserFuncs.frc_matchData(eventKey, api_key)
+            rank_df = parserFuncs.frc_eventRankings(eventKey, api_key)
+
+            matchDataDF = match_df.drop(columns=['matchKey'])
+            rankTable = rank_df.loc[:,['rank','team_key']]
+            rankTable = rankTable.rename(columns={'team_key':0})
+
+            # Get X matrix
+            xData = teamStatFuncs.create_xMatrix(matchDataDF,\
+                                                 rankTable)
+            
+            # Get Y matrix
+            output = teamStatFuncs.create_yMatrix(matchDataDF,\
+                                                  rankTable)
+            y_OffData = output[0]
+            y_DefData = output[1]
+            colNames = output[2]
+            robotSpecCols = output[3]
+            nonAlliSpecCols = output[4]
+
+            # Prepare to add output table/charts
+            tempOutput = []
+
+            if displayType == 'olsEstTab':
+                # Get average data for OLS
+                beta_Off_DF,beta_Def_DF = teamStatFuncs.OLS_TeamStats(xData,\
+                                                                      y_OffData,\
+                                                                      y_DefData,\
+                                                                      colNames,\
+                                                                      rankTable)
+                beta_Off_DF.columns = ['Off_'+x for x in beta_Off_DF.columns]
+                beta_Def_DF.columns = ['Def_'+x for x in beta_Def_DF.columns]
+
+                roboSpecStats = teamStatFuncs.specTeamStats(robotSpecCols,\
+                                                            matchDataDF,\
+                                                            rankTable)
+                
+                concatDF = pd.concat([beta_Off_DF, beta_Def_DF, roboSpecStats],\
+                                     axis=1,\
+                                     sort=False)
+                concatDF = concatDF.reset_index(drop=False, inplace=False)
+                concatDF = concatDF.rename(columns={0:'Team'})
+
+                # Output creation
+                title = html.Div(id='olsEstTab-title-div',\
+                                children=html.B('OLS Estimation Stats',\
+                                                style={'font-size':'40px'}))
+            
+                temp = html.Div(id='olsEstTab-table-div',\
+                                children=[dash_table.DataTable(id='olsEstTab-table',\
+                                                               columns=[{'name': i, 'id': i} for i in concatDF.columns],\
+                                                               style_cell={'textAlign':'left'},\
+                                                               data=concatDF.to_dict('records'),\
+                                                               filter_action='native',\
+                                                               sort_action='native',\
+                                                               sort_mode='multi')])
+
+                tempData = concatDF.copy()
+                csv_string = tempData.to_csv(index=False, encoding='utf-8')
+                csv_string = 'data:text/csv;charset=utf-8,' + urllib.parse.quote(csv_string)
+
+                downloadDiv = html.A('Download Table',\
+                                     id='olsEstTab-download-button',\
+                                     download='olsStats.csv',\
+                                     href=csv_string,\
+                                     style={'font-size':'20px',\
+                                            'visibility':'visible'})
+                
+                tempOutput.append(title)
+                tempOutput.append(downloadDiv)
+                tempOutput.append(temp)
+                
+            elif displayType == 'bayesEstTab':
+                title = html.Div(id='olsEstTab-title-div',\
+                                children=html.B('OLS Estimation Stats',\
+                                                style={'font-size':'40px'}))
+            
+                temp = html.Div(id='olsEstTab-table-div',\
+                                children=[dash_table.DataTable(id='olsEstTab-table',\
+                                                               columns=[{'name': i, 'id': i} for i in concatDF.columns],\
+                                                               style_cell={'textAlign':'left'},\
+                                                               data=concatDF.to_dict('records'),\
+                                                               filter_action='native',\
+                                                               sort_action='native',\
+                                                               sort_mode='multi')])
+
+                tempData = concatDF.copy()
+                csv_string = tempData.to_csv(index=False, encoding='utf-8')
+                csv_string = 'data:text/csv;charset=utf-8,' + urllib.parse.quote(csv_string)
+
+                downloadDiv = html.A('Download Table',\
+                                     id='matchStat-download-button',\
+                                     download='matchStats.csv',\
+                                     href=csv_string,\
+                                     style={'font-size':'20px',\
+                                            'visibility':'visible'})
+                
+                tempOutput.append(downloadDiv)
+                tempOutput.append(temp)
+            
+            elif displayType == 'bayesDistr':
+                # Insert chart code
+                print('Nothing here!')
 
 
+            submitClicksDiv = html.Div(id='submit-clicks-div',\
+                                       children=n_clicks,\
+                                       style={'visibility':'hidden'})
+            tempOutput.append(submitClicksDiv)
+            
+            output = tempOutput
+        else:
+            error_output = html.Div(id='error-div',\
+                                    children=[html.B('Please select either a team or a display type',\
+                                                     style={'font-size':'20px',\
+                                                            'color':'red'})],\
+                                    style={'padding-bottom':'10px',\
+                                           'padding-top':'10px',\
+                                           'padding-left':'0px'})
+
+            submitClicksDiv = html.Div(id='submit-clicks-div',\
+                                   children=n_clicks,\
+                                   style={'visibility':'hidden'})
+            
+            output = [error_output,submitClicksDiv]
+
+    else:
+        submitClicksDiv = html.Div(id='submit-clicks-div',\
+                                   children=n_clicks,\
+                                   style={'visibility':'hidden'})
+        output = [submitClicksDiv]
+        outputStyle = {'visibility':'hidden',\
+                       'height':'0px',\
+                       'padding-bottom':'0px',\
+                       'padding-top':'0px',\
+                       'padding-left':'0px'}
+        
+    return output, outputStyle
 
 
 # General Functions (NOT callbacks)
 #############################################################################################
 
 # Generate table
-def generate_table(dataframe,divID):
-    match_stats_table = html.Div(id=divID+'-div',\
-                                 style={'padding-bottom':'10px',\
-                                        'padding-top':'10px',\
-                                        'padding-left':'0px'},\
-                                 children=[html.B('Match Stats',\
-                                                  style={'font-size':'40px'}),\
-                                           dash_table.DataTable(id = divID+'-table',\
-                                                                columns = [{'name': i, 'id': i} for i in dataframe.columns],\
-                                                                data = dataframe.to_dict('records'))])
+def generate_table(dataframe,divID,title):
+    output_table_div = html.Div(id=divID+'-div',\
+                                children=[html.B(title,\
+                                                 style={'font-size':'40px'}),\
+                                          dash_table.DataTable(id = divID+'-table',\
+                                                               columns = [{'name': i, 'id': i} for i in dataframe.columns],\
+                                                               data = dataframe.to_dict('records'),\
+                                                               filter_action='native')])
     
-    return match_stats_table
+    return output_table_div
 
 if __name__ == '__main__':
     app.run_server(debug=True)
