@@ -12,6 +12,7 @@ import dash_table
 
 import json
 import requests
+import numpy as np
 import pandas as pd
 from pandas import json_normalize
 import urllib
@@ -22,6 +23,7 @@ import sys
 from backend import parserFuncs
 #from backend import tgParserFuncs
 from backend import teamStatFuncs
+from backend import teamPlotFuncs
 
 server = Flask(__name__)
 @server.route('/flask')
@@ -137,9 +139,24 @@ app.layout =html.Div(className='dash-bootstrap',\
                                                                                                      options=[{'label':'OLS Estimation Table','value':'olsEstTab'},\
                                                                                                               {'label':'Bayesian Estimation Table','value':'bayesEstTab'},\
                                                                                                               {'label':'Bayesian Distribution','value':'bayesDistr'}],\
-                                                                                                     multi = False)],\
+                                                                                                     multi=False)],\
                                                                               style={'display':'inline-block',
                                                                                      'width':'200px',\
+                                                                                     'vertical-align':'top'})]),\
+                                                  html.Div(id='averageStats-colNames',\
+                                                           style={'visibility':'hidden'},\
+                                                           children=[html.Div(id='colNamesLabel',\
+                                                                              children=[html.B('Columns:',\
+                                                                                               style={'font-size':'20px'})],\
+                                                                               style={'display':'inline-block',\
+                                                                                      'width':'100px',\
+                                                                                      'vertical-align':'top'}),\
+                                                                     html.Div(id='averageStats-colNames-dropdown-div',\
+                                                                              children=[dcc.Dropdown(id='averageStats-colNames-dropdown',\
+                                                                                                     options=[],\
+                                                                                                     multi=True)],\
+                                                                              style={'display':'inline-block',
+                                                                                     'min-width':'200px',\
                                                                                      'vertical-align':'top'})])]),\
                                
                                html.Div(id='tab-content-matchStats',\
@@ -187,7 +204,8 @@ api_key = '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'
 headers = {'X-TBA-Auth-Key':api_key}
 ######################################################################################
 
-@app.callback([Output('event-div', 'style'),\
+# Show years
+@app.callback([Output('event-div','style'),\
                Output('event-dropdown', 'options')],\
               [Input('year-dropdown', 'value')])
 def display_dropdown(year):
@@ -214,7 +232,8 @@ def display_dropdown(year):
 
     return eventStyle, city_States
 
-@app.callback(Output('multiselect-reports-label', 'style'),\
+# Display reports
+@app.callback(Output('multiselect-reports-label','style'),\
               [Input('event-dropdown', 'value')])
 def display_reports_dropdown(city_event):
     reportsStyle = {'visibility': 'hidden'}
@@ -251,6 +270,7 @@ def display_tab(tab_triggered):
         
     return tabStyle, tab_report_name
 
+# Dictates which report content will be displayed
 @app.callback([Output('submit-div','style'),\
                Output('averageStats-teams-dropdown','options'),\
                Output('tab-content-averageStats','style'),\
@@ -264,7 +284,6 @@ def display_tab(tab_triggered):
                Output('tab-content-eliminationSimulator','style')],
               [Input('tabs-reports','value'),\
                Input('event-dropdown','value')])
-#Dictates which content will be displayed
 def display_tab_content(tab, key):
     # Submit button style
     submitStyle = {'visibility':'hidden',\
@@ -390,15 +409,6 @@ def update_matchStats_table(n_clicks,\
                             multi_choices,\
                             eventKey):
     
-#    # Set submitClicks to -1
-#    submitClicks = -1
-#
-#    if n_clicks is None:
-#        n_clicks = 0
-    
-    #time.sleep(10)
-    #print(matchStatsList)
-    
     if (tabVal == 'Match Stats'):
         outputStyle = {'visibility':'visible'}
 
@@ -438,27 +448,58 @@ def update_matchStats_table(n_clicks,\
                                  href=csv_string,\
                                  style={'font-size':'20px'})
 
-            #output = [title,downloadDiv]
             output = [title,downloadDiv,temp]
 
-            return output, outputStyle
         else:
-            error_output = html.Div(id='error-div',\
-                                    children=[html.B('Please select a column value',\
-                                                     style={'font-size':'20px',\
-                                                            'color':'red'})],\
-                                    style={'padding-bottom':'10px',\
-                                           'padding-top':'10px',\
-                                           'padding-left':'0px'})            
+            error_output = generate_error_div('matchStats',\
+                                              'Please select a column value')
             output = [error_output]
-
-            return output, outputStyle
 
     else:
         output = []
         outputStyle = {'visibility':'hidden'}
         
-        return output, outputStyle
+    return output, outputStyle
+
+# Callback for showing and populating column dropdown for average team statistics report
+@app.callback([Output('averageStats-colNames','style'),\
+               Output('averageStats-colNames-dropdown','options')],\
+              [Input('averageStats-display-dropdown','value')],\
+              [State('event-dropdown','value')])
+def display_colDropdown(displayType,\
+                        eventKey):
+    colStyle = {'visibility':'hidden'}
+    colOptions = []
+
+    if not(displayType is None):
+        if (displayType == 'bayesEstTab') | (displayType == 'bayesDistr'):
+            colStyle = {'visibility':'visible',\
+                        'min-width':'300px'}
+            
+            match_stats_df = pd.DataFrame()
+            
+            try:
+                match_stats_df = parserFuncs.frc_matchData(eventKey, api_key)
+            except:
+                colOptions.append({'label': 'no data available', 'value': ''})
+            
+            if not (match_stats_df.empty):
+
+                uniqueCols = []
+                for col in match_stats_df:
+                    if not (col in ['blue1','blue2','blue3','red1','red2','red3','matchKey']):
+                        splitCol = col.split('.')
+
+                        if (splitCol[0] == 'blue') | (splitCol[0] == 'red'):
+                            uniqueCols.append('color.'+splitCol[1])
+                        else:
+                            uniqueCols.append(col)
+                        
+                uniqueCols = list(set(uniqueCols))
+                uniqueCols.sort()
+                colOptions = [{'label': val.split('.')[1], 'value': val} if val.split('.')[0] == 'color' else {'label': val, 'value': val} for val in uniqueCols ]
+    
+    return colStyle,colOptions
 
 # Callback for average team statistics report
 @app.callback([Output('averageStats-output','children'),\
@@ -467,15 +508,14 @@ def update_matchStats_table(n_clicks,\
                Input('tabs-reports','value')],\
               [State('averageStats-teams-dropdown','value'),\
                State('averageStats-display-dropdown','value'),\
+               State('averageStats-colNames-dropdown','value'),\
                State('event-dropdown','value')])
-
 def update_averageTeamStats(n_clicks,\
                             tabVal,\
                             teamValue,\
                             displayType,\
+                            colValues,\
                             eventKey):
-
-    #print(aveOutputList)
     
     if (tabVal == 'Average Stats by Team'):
         outputStyle = {'visibility':'visible',\
@@ -502,7 +542,7 @@ def update_averageTeamStats(n_clicks,\
             y_DefData = output[1]
             colNames = output[2]
             robotSpecCols = output[3]
-            nonAlliSpecCols = output[4]
+            #nonAlliSpecCols = output[4]
 
             # Prepare to add output table/charts
             tempOutput = []
@@ -520,34 +560,92 @@ def update_averageTeamStats(n_clicks,\
                 roboSpecStats = teamStatFuncs.specTeamStats(robotSpecCols,\
                                                             matchDataDF,\
                                                             rankTable)
-                
-                concatDF = pd.concat([beta_Off_DF, beta_Def_DF, roboSpecStats],\
+
+                # Create seperate concatenated dataframe
+                concatDF = pd.concat([roboSpecStats,beta_Off_DF,beta_Def_DF],\
                                      axis=1,\
                                      sort=False)
-                concatDF = concatDF.reset_index(drop=False, inplace=False)
-                concatDF = concatDF.rename(columns={0:'Team'})
+
+                # Filter for specific team
+                beta_Off_DF = beta_Off_DF.loc[teamValue,:]
+                beta_Def_DF = beta_Def_DF.loc[teamValue,:]
+                roboSpecStats = roboSpecStats.loc[teamValue,:]
+
+                # Transpose dataframe
+                beta_Off_DF = beta_Off_DF.T
+                beta_Def_DF = beta_Def_DF.T
+                roboSpecStats = roboSpecStats.T
+
+                # Add row names a column and rename them their feature name appropriately
+                beta_Off_DF = beta_Off_DF.reset_index(drop=False, inplace=False)
+                beta_Def_DF = beta_Def_DF.reset_index(drop=False, inplace=False)
+                roboSpecStats = roboSpecStats.reset_index(drop=False, inplace=False)
+
+                beta_Off_DF = beta_Off_DF.rename(columns={0:'Offensive Stats'})
+                beta_Def_DF = beta_Def_DF.rename(columns={0:'Defensive Stats'})
+                roboSpecStats = roboSpecStats.rename(columns={0:'Robot Specific'})
 
                 # Output creation
+                #--------------------------------------------------------------------------------------------------------------
+                # Titles and subtitles
                 title = html.Div(id='olsEstTab-title-div',\
-                                children=html.B('OLS Estimation Stats',\
-                                                style={'font-size':'40px'}))
-            
-                temp = html.Div(id='olsEstTab-table-div',\
-                                children=[dash_table.DataTable(id='olsEstTab-table',\
-                                                               columns=[{'name': i, 'id': i} for i in concatDF.columns],\
-                                                               style_cell={'textAlign':'left'},\
-                                                               data=concatDF.to_dict('records'),\
-                                                               filter_action='native',\
-                                                               sort_action='native',\
-                                                               sort_mode='multi')])
+                                 children=html.B('OLS Estimation Stats',\
+                                                 style={'font-size':'40px'}))
 
+                roboTitle = html.Div(id='roboSpec-title-div',\
+                                     children=html.B('Robot Specific',\
+                                                     style={'font-size':'20px'}))
+                offTitle = html.Div(id='beta_off-title-div',\
+                                    children=html.B('Offensive Stats',\
+                                                    style={'font-size':'20px'}))
+                defTitle = html.Div(id='beta_def-title-div',\
+                                    children=html.B('Defensive Stats',\
+                                                    style={'font-size':'20px'}))
+
+                # Div for tables
+                temp = html.Div(id='olsEstTab-tables-div',\
+                                children=[html.Div(id='roboSpec-table-div',\
+                                                   style={'display':'inline-block',\
+                                                          'padding-left':'20px'},\
+                                                   children=[roboTitle,\
+                                                             dash_table.DataTable(id='roboSpec-table',\
+                                                                                  columns=[{'name': i, 'id': i} for i in roboSpecStats.columns],\
+                                                                                  style_cell={'textAlign':'left'},\
+                                                                                  data=roboSpecStats.to_dict('records'),\
+                                                                                  filter_action='native',\
+                                                                                  sort_action='native',\
+                                                                                  sort_mode='multi')]),\
+                                          html.Div(id='beta_off-table-div',\
+                                                   style={'display':'inline-block',\
+                                                          'padding-left':'20px'},\
+                                                   children=[offTitle,\
+                                                             dash_table.DataTable(id='beta_off-table',\
+                                                                                  columns=[{'name': i, 'id': i} for i in beta_Off_DF.columns],\
+                                                                                  style_cell={'textAlign':'left'},\
+                                                                                  data=beta_Off_DF.to_dict('records'),\
+                                                                                  filter_action='native',\
+                                                                                  sort_action='native',\
+                                                                                  sort_mode='multi')]),\
+                                          html.Div(id='beta_def-table-div',\
+                                                   style={'display':'inline-block',\
+                                                          'padding-left':'20px'},\
+                                                   children=[defTitle,\
+                                                             dash_table.DataTable(id='beta_def-table',\
+                                                                                  columns=[{'name': i, 'id': i} for i in beta_Def_DF.columns],\
+                                                                                  style_cell={'textAlign':'left'},\
+                                                                                  data=beta_Def_DF.to_dict('records'),\
+                                                                                  filter_action='native',\
+                                                                                  sort_action='native',\
+                                                                                  sort_mode='multi')])])
+
+                # Download link (all teams)
                 tempData = concatDF.copy()
                 csv_string = tempData.to_csv(index=False, encoding='utf-8')
                 csv_string = 'data:text/csv;charset=utf-8,' + urllib.parse.quote(csv_string)
 
-                downloadDiv = html.A('Download Table',\
+                downloadDiv = html.A('Download Table (All Teams)',\
                                      id='olsEstTab-download-button',\
-                                     download='olsStats.csv',\
+                                     download='allTeams_olsStats.csv',\
                                      href=csv_string,\
                                      style={'font-size':'20px',\
                                             'visibility':'visible'})
@@ -555,66 +653,99 @@ def update_averageTeamStats(n_clicks,\
                 tempOutput.append(title)
                 tempOutput.append(downloadDiv)
                 tempOutput.append(temp)
-                
-            elif displayType == 'bayesEstTab':
-                title = html.Div(id='olsEstTab-title-div',\
-                                children=html.B('OLS Estimation Stats',\
-                                                style={'font-size':'40px'}))
-            
-                temp = html.Div(id='olsEstTab-table-div',\
-                                children=[dash_table.DataTable(id='olsEstTab-table',\
-                                                               columns=[{'name': i, 'id': i} for i in concatDF.columns],\
-                                                               style_cell={'textAlign':'left'},\
-                                                               data=concatDF.to_dict('records'),\
-                                                               filter_action='native',\
-                                                               sort_action='native',\
-                                                               sort_mode='multi')])
 
-                tempData = concatDF.copy()
-                csv_string = tempData.to_csv(index=False, encoding='utf-8')
-                csv_string = 'data:text/csv;charset=utf-8,' + urllib.parse.quote(csv_string)
+            elif (displayType == 'bayesEstTab') | (displayType == 'bayesDistr'):
+                if colValues:
+                    if len(colValues) <= 500/len(rank_df):
+                        # Perform MCMC simulation
+                        alliList = [value.split('.')[1] for value in colValues if value.split('.')[0] == 'color']
+                        
+                        y_colIndices = [colNames.index(x) for x in colNames if x in alliList]
 
-                downloadDiv = html.A('Download Table',\
-                                     id='matchStat-download-button',\
-                                     download='matchStats.csv',\
-                                     href=csv_string,\
-                                     style={'font-size':'20px',\
-                                            'visibility':'visible'})
-                
-                tempOutput.append(downloadDiv)
-                tempOutput.append(temp)
-            
-            elif displayType == 'bayesDistr':
-                # Insert chart code
-                print('Nothing here!')
+                        concatArray = np.concatenate((y_OffData[:,y_colIndices],y_DefData[:,y_colIndices]),\
+                                                     axis=1)
 
+                        offColList = ['off_'+x for x in alliList]
+                        defColList = ['def_'+x for x in alliList]
+                        conColList = offColList+defColList
 
-            submitClicksDiv = html.Div(id='submit-clicks-div',\
-                                       children=n_clicks,\
-                                       style={'visibility':'hidden'})
-            tempOutput.append(submitClicksDiv)
+                        results,betaDict = teamStatFuncs.bayes_TeamStat(xData,\
+                                                                        concatArray,\
+                                                                        conColList,\
+                                                                        rankTable,\
+                                                                        nIter=5000,\
+                                                                        nChains=4,\
+                                                                        nJobs=4)
+                        
+                        results = results.rename(columns=betaDict)
+
+                        if displayType == 'bayesEstTab':
+                            results.columns = ['_'.join(x) if ((type(x) == tuple) & (teamValue in x)) else x for x in results.columns]
+                            subsetResults = results.loc[:,[x for x in results.columns if type(x) == str]]
+
+                            title = html.Div(id='bayesEstTab-title-div',\
+                                             children=html.B('Bayesian Estimation Stats',\
+                                                             style={'font-size':'40px'}))
+                        
+                            temp = html.Div(id='bayesEstTab-table-div',\
+                                            children=[dash_table.DataTable(id='bayesEstTab-table',\
+                                                                        columns=[{'name': i, 'id': i} for i in subsetResults.columns],\
+                                                                        style_cell={'textAlign':'left'},\
+                                                                        data=subsetResults.to_dict('records'),\
+                                                                        filter_action='native',\
+                                                                        sort_action='native',\
+                                                                        sort_mode='multi')])
+
+                            tempData = results.copy()
+                            csv_string = tempData.to_csv(index=False, encoding='utf-8')
+                            csv_string = 'data:text/csv;charset=utf-8,' + urllib.parse.quote(csv_string)
+
+                            downloadDiv = html.A('Download Table',\
+                                                id='bayesEsti-download-button',\
+                                                download='bayesResults.csv',\
+                                                href=csv_string,\
+                                                style={'font-size':'20px',\
+                                                        'visibility':'visible'})
+                            
+                            tempOutput.append(title)
+                            tempOutput.append(downloadDiv)
+                            tempOutput.append(temp)
+
+                        elif displayType == 'bayesDistr':
+                            title = html.Div(id='bayesDistr-title-div',\
+                                             children=html.B('Bayes Distribution(s)',\
+                                                             style={'font-size':'40px'}))
+
+                            graphList = []
+                            for colVal in conColList:
+                                fig, gauss_kde = teamPlotFuncs.plot_trace(results[(colVal,teamValue)],\
+                                                                          param_name=colVal+' '+teamValue)
+                                graphList.append(dcc.Graph(id=colVal+'-div',\
+                                                           figure=fig,\
+                                                           style={'width':'1500px',\
+                                                                  'height':'750px'}))
+                            
+                            temp = html.Div(id='bayesDistr-chart-div',\
+                                            children=graphList)
+                            
+                            tempOutput.append(title)
+                            tempOutput.append(temp)
+
+                    else:
+                        from math import floor
+                        error_output = generate_error_div('aveStats',\
+                                                          'Please select only '+str(floor(1000/len(rank_df)))+' or fewer columns')
+                        tempOutput = [error_output]
             
             output = tempOutput
         else:
-            error_output = html.Div(id='error-div',\
-                                    children=[html.B('Please select either a team or a display type',\
-                                                     style={'font-size':'20px',\
-                                                            'color':'red'})],\
-                                    style={'padding-bottom':'10px',\
-                                           'padding-top':'10px',\
-                                           'padding-left':'0px'})
-
-            submitClicksDiv = html.Div(id='submit-clicks-div',\
-                                   children=n_clicks,\
-                                   style={'visibility':'hidden'})
+            error_output = generate_error_div('aveStats',\
+                                              'Please select either a team or a display type')
             
-            output = [error_output,submitClicksDiv]
+            output = [error_output]
 
     else:
-        submitClicksDiv = html.Div(id='submit-clicks-div',\
-                                   children=n_clicks,\
-                                   style={'visibility':'hidden'})
-        output = [submitClicksDiv]
+        output = []
         outputStyle = {'visibility':'hidden',\
                        'height':'0px',\
                        'padding-bottom':'0px',\
@@ -627,17 +758,17 @@ def update_averageTeamStats(n_clicks,\
 # General Functions (NOT callbacks)
 #############################################################################################
 
-# Generate table
-def generate_table(dataframe,divID,title):
-    output_table_div = html.Div(id=divID+'-div',\
-                                children=[html.B(title,\
-                                                 style={'font-size':'40px'}),\
-                                          dash_table.DataTable(id = divID+'-table',\
-                                                               columns = [{'name': i, 'id': i} for i in dataframe.columns],\
-                                                               data = dataframe.to_dict('records'),\
-                                                               filter_action='native')])
+# Generate error message
+def generate_error_div(divID,title):
+    error_div = html.Div(id=divID+'-div',\
+                         style={'padding-bottom':'10px',\
+                                'padding-top':'10px',\
+                                'padding-left':'0px'},\
+                         children=[html.B(title,\
+                                          style={'font-size':'20px',\
+                                                 'color':'red'})])
     
-    return output_table_div
+    return error_div
 
 if __name__ == '__main__':
     app.run_server(debug=True)
