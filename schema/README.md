@@ -29,7 +29,7 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 **<ins>Event Matches</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| eventMatchKey | STRING | PK |
+| match_key | STRING | PK |
 | red1 | STRING |
 | red2 | STRING |
 | red3 | STRING |
@@ -38,15 +38,16 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 | blue3 | STRING |
 | redScore | INT |
 | blueScore | INT |
+| event_key | STRING |
 
 **<ins>Event Awards</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| eventKey | STRING | PK |
-| awardType | STRING | Enum (will need to be converted to String) |
-| awardName | STRING |  |
+| award_id | STRING | PK |
+| award | STRING |  |
 | team | STRING | Can be NULL |
 | awardee | STRING | Can be NULL |
+| event_key | STRING |
 
 **<ins>Event Teams</ins>**
 | **Attribute** | **Data Type** | **Note** |
@@ -56,7 +57,7 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 **<ins>Event Alliances</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| allianceId | INT | PK |
+| alliance_id | STRING | PK |
 | captain | STRING | teamName |
 | pick1 | STRING | primary - team |
 | pick2 | STRING | primary - team |
@@ -64,17 +65,16 @@ In a TigerGraph system, reverse edges provide the most efficient way to perform 
 **<ins>Event Rankings</ins>**
 | **Attribute** | **Data Type** | **Note** |
 |-|-|-|
-| rankingId | INT | PK |
-| rank | INT |
-| team | INT | String: fr{team}
-| qs | DOUBLE |
-| assist | DOUBLE |
-| autoStat | DOUBLE |
-| t&c | DOUBLE |
-| teleop | DOUBLE |
-| record | STRING |
-| dq | INT |
+| rank | STRING | PK |
+| fr_team | INT | String: fr{team}
+| qual_avg | FLOAT |
+| auto | FLOAT |
+| container | FLOAT |
+| coopertition | FLOAT |
+| litter | FLOAT |
+| tote | FLOAT |
 | played | INT |
+| event_key | STRING |
 
 ### Notes
 By convention, we have put all of our CREATE VERTEX, CREATE EDGE, and the final CREATE GRAPH statements in one file.
