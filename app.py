@@ -20,8 +20,8 @@ import time
 import os
 import sys
 
-from backend import parserFuncs
-#from backend import tgParserFuncs
+#from backend import parserFuncs
+from backend import tgParserFuncs
 from backend import teamStatFuncs
 from backend import teamPlotFuncs
 
@@ -39,7 +39,8 @@ app = Dash(
 )
 
 # This is the array set up for the drop down year
-year_options = [i for i in range(1992, 2020)]
+#year_options = [i for i in range(1992, 2020)]
+year_options = [2015]
 
 # Create the layout
 app.layout =html.Div(className='dash-bootstrap',\
@@ -81,7 +82,7 @@ app.layout =html.Div(className='dash-bootstrap',\
                                                            children=[dcc.Dropdown(id='event-dropdown',\
                                                                                   options=[])],\
                                                                style={'display': 'inline-block',\
-                                                                      'min-width':'700px'})]),
+                                                                      'min-width':'100px'})]),#'700px'})]),
                                
                                # Drop down for reports
                                html.Div(id='multiselect-reports-label',\
@@ -200,8 +201,9 @@ app.layout =html.Div(className='dash-bootstrap',\
 
 ######################################################################################
 # Variables that will change when connected to backend (currently using Blue Alliance)
-api_key = '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'
-headers = {'X-TBA-Auth-Key':api_key}
+#api_key = '3BFWLXdBe4yJUCo73Ky3hiBLdKNwCWHe9Nm1Xwr3JSIv5oOM3S1UNdufyTMKBAVU'
+#headers = {'X-TBA-Auth-Key':api_key}
+api_key = 'omq7mnigcke5e7k1e1udlitgo8h0kke2'
 ######################################################################################
 
 # Show years
@@ -210,7 +212,8 @@ headers = {'X-TBA-Auth-Key':api_key}
               [Input('year-dropdown', 'value')])
 def display_dropdown(year):
     eventStyle = {'visibility': 'hidden'}
-    city_States = []
+    #city_States = []
+    eventKeys = []
 
     if not (year is None):
         eventStyle ={'visibility': 'visible',\
@@ -220,17 +223,39 @@ def display_dropdown(year):
                      'text-align':'left',\
                      'width':'800px'}
     
-        #Pull list of events for a specific year
-        r = requests.get('https://www.thebluealliance.com/api/v3/events/' + str(year), headers = headers)
+        # Pull list of events for a specific year
+        #r = requests.get('https://www.thebluealliance.com/api/v3/events/' + str(year), headers = headers)
+        #
+        #events_dump = r.json()
+        #
+        ## Extracting the desired data into a list: city, state_prov, event
+        #for event in events_dump:
+        #    if not(event['city'] is None):
+        #        city_States.append({'label': event['name']+ ' (' +event['city']+', ' +event['state_prov']+')', 'value':event['key']})
         
-        events_dump = r.json()
+        token = requests.get('https://frc-event-statistics.i.tgcloud.io:9000/requesttoken?secret='+api_key+'&lifetime=1000000')
+        tokenJSON = token.json()
 
-        #Extracting the desired data into a list: city, state_prov, event
-        for event in events_dump:
-            if not(event['city'] is None):
-                city_States.append({'label': event['name']+ ' (' +event['city']+', ' +event['state_prov']+')', 'value':event['key']})
+        header = {'Authorization': 'Bearer '+tokenJSON['token']}
+        url = 'https://frc-event-statistics.i.tgcloud.io:9000/graph/MyGraph/vertices/EventRankings'
 
-    return eventStyle, city_States
+        page = requests.get(url,\
+                            headers=header)
+        
+        rankData = pd.DataFrame(page.json()['results'])
+
+        uniqueEvents = []
+        for row in range(len(rankData)):
+            currRow = rankData.at[row,'attributes']
+
+            uniqueEvents.append(currRow['event_key'])
+        
+        uniqueEvents = list(set(uniqueEvents))
+        uniqueEvents.sort()
+
+        eventKeys = [{'label':x,'value':x} for x in uniqueEvents]
+
+    return eventStyle, eventKeys#city_States
 
 # Display reports
 @app.callback(Output('multiselect-reports-label','style'),\
@@ -340,7 +365,8 @@ def display_tab_content(tab, key):
                              'padding-bottom':'10px',\
                              'padding-top':'10px',\
                              'padding-left':'0px'}
-        rank_df = parserFuncs.frc_eventRankings(key, api_key)
+        #rank_df = parserFuncs.frc_eventRankings(key, api_key)
+        rank_df = tgParserFuncs.frc_eventRankings(key, api_key)
         teamsList = list(rank_df['team_key'])
         teamsList.sort()
 
@@ -357,7 +383,8 @@ def display_tab_content(tab, key):
         match_stats_df = pd.DataFrame()
         
         try:
-            match_stats_df = parserFuncs.frc_matchData(key, api_key)
+            #match_stats_df = parserFuncs.frc_matchData(key, api_key)
+            match_stats_df = tgParserFuncs.frc_matchData(key, api_key)
         except:
             matchStatsoptions.append({'label': 'no data available', 'value': ''})
         
@@ -413,7 +440,8 @@ def update_matchStats_table(n_clicks,\
         outputStyle = {'visibility':'visible'}
 
         if multi_choices:
-            df = parserFuncs.frc_matchData(eventKey, api_key)
+            #df = parserFuncs.frc_matchData(eventKey, api_key)
+            df = tgParserFuncs.frc_matchData(eventKey, api_key)
 
             blueAlliList = ['blue.'+value.split('.')[1] for value in multi_choices if value.split('.')[0] == 'color']
             redAlliList = ['red.'+value.split('.')[1] for value in multi_choices if value.split('.')[0] == 'color']
@@ -479,7 +507,8 @@ def display_colDropdown(displayType,\
             match_stats_df = pd.DataFrame()
             
             try:
-                match_stats_df = parserFuncs.frc_matchData(eventKey, api_key)
+                #match_stats_df = parserFuncs.frc_matchData(eventKey, api_key)
+                match_stats_df = tgParserFuncs.frc_matchData(eventKey, api_key)
             except:
                 colOptions.append({'label': 'no data available', 'value': ''})
             
@@ -524,8 +553,11 @@ def update_averageTeamStats(n_clicks,\
                        'padding-left':'0px'}
 
         if teamValue and displayType:
-            match_df = parserFuncs.frc_matchData(eventKey, api_key)
-            rank_df = parserFuncs.frc_eventRankings(eventKey, api_key)
+            #match_df = parserFuncs.frc_matchData(eventKey, api_key)
+            #rank_df = parserFuncs.frc_eventRankings(eventKey, api_key)
+
+            match_df = tgParserFuncs.frc_matchData(eventKey, api_key)
+            rank_df = tgParserFuncs.frc_eventRankings(eventKey, api_key)
 
             matchDataDF = match_df.drop(columns=['matchKey'])
             rankTable = rank_df.loc[:,['rank','team_key']]

@@ -20,6 +20,10 @@ def frc_matchData(eventKey, secretKey='omq7mnigcke5e7k1e1udlitgo8h0kke2'):
             matchData.at[row,col] = currRow[col]
     
     matchData = matchData.rename(columns={'v_id':'matchKey'})
+    matchData.columns = matchData.columns.str.replace('red_', 'red.')
+    matchData.columns = matchData.columns.str.replace('blue_', 'blue.')
+
+    matchData = matchData.drop(['v_type', 'attributes', 'event_key'], axis=1)
 
     return matchData
 
